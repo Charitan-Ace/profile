@@ -1,0 +1,32 @@
+spring:
+  application:
+    name: profile
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  datasource:
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      idle-timeout: 30000
+      max-lifetime: 60000
+      connection-timeout: 30000
+      pool-name: MyHikariCP
+
+server:
+  servlet:
+    context-path: /charitan/api
+
+logging:
+  level:
+    org.springframework.security: DEBUG
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true

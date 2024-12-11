@@ -1,12 +1,10 @@
 package com.charitan.profile.stripe.service;
 
 import com.charitan.profile.stripe.StripeExternalAPI;
-import io.github.cdimascio.dotenv.Dotenv;
 
 import com.stripe.model.Customer;
 import com.stripe.Stripe;
-import com.stripe.param.CustomerCreateParams;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,14 +13,11 @@ import java.util.Map;
 
 @Service
 @Transactional
-@RequiredArgsConstructor
 public class StripeService implements StripeExternalAPI {
-
-    private final String stripeSecretKey;
+    @Value("${stripe.secret}")
+    private String stripeSecretKey;
 
     public StripeService() {
-        Dotenv dotenv = Dotenv.load();
-        this.stripeSecretKey = dotenv.get("STRIPE_SECRET_KEY");
         Stripe.apiKey = this.stripeSecretKey; // Set Stripe API key globally
     }
 
