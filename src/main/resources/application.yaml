@@ -18,8 +18,16 @@ spring:
       pool-name: MyHikariCP
 
 server:
+  port: 0
   servlet:
     context-path: /charitan/api
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka}
+  instance:
+    preferIpAddress: true
 
 logging:
   level:
