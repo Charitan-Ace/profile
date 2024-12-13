@@ -13,7 +13,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @Validated
-@RequestMapping("/charity")
+@RequestMapping("api/profile/charity")
 public class CharityController {
 
     @Autowired

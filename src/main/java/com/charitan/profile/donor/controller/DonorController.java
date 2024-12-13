@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 @Controller
-@RequestMapping("/donor")
+@RequestMapping("api/profile/donor")
 public class DonorController {
     @Autowired
     private DonorService donorService;

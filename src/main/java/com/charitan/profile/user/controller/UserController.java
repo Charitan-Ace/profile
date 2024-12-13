@@ -13,7 +13,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @Validated
-@RequestMapping("/user")
+@RequestMapping("/api/profile/user")
 public class UserController {
 
     @Autowired
