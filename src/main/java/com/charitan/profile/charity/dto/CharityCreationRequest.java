@@ -17,4 +17,7 @@ public class CharityCreationRequest {
 
     @NotNull(message = "Tax code is required")
     private String taxCode;
+
+    @NotNull(message = "Organization type is required")
+    private String organizationType;
 }

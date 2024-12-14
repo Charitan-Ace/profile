@@ -107,7 +107,7 @@ public class UserService implements UserExternalAPI {
     private String formatForUrl(String token) {
         try {
             String encodedString = URLEncoder.encode(token, StandardCharsets.UTF_8);
-            return "http://localhost:8080/charitan/api/user/verify?token=" + encodedString;
+            return "http://localhost:8080/api/profile/user/verify?token=" + encodedString;
         } catch (Exception e) {
             throw new RuntimeException("Error encoding URL", e);
         }

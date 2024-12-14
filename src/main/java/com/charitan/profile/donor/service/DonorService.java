@@ -1,5 +1,6 @@
 package com.charitan.profile.donor.service;
 
+import com.charitan.profile.donor.DonorExternalAPI;
 import com.charitan.profile.donor.dto.DonorCreationRequest;
 import com.charitan.profile.donor.dto.DonorDTO;
 import com.charitan.profile.donor.dto.DonorUpdateRequest;
@@ -20,13 +21,14 @@ import java.util.Map;
 @Service
 @Transactional
 @RequiredArgsConstructor
-public class DonorService {
+public class DonorService implements DonorExternalAPI {
     @Autowired
     private DonorRepository donorRepository;
     private final StripeExternalAPI stripeExternalAPI;
     private final UserExternalAPI userExternalAPI;
 
     //TODO: send email on successful creation
+    @Override
     public void createDonor(DonorCreationRequest request) {
         UserDTO userDTO = userExternalAPI.findUserById(request.getUserId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User is not found."));
@@ -60,6 +62,7 @@ public class DonorService {
         donorRepository.save(donor);
     }
 
+    @Override
     public void updateDonor(DonorUpdateRequest request) {
 
         Donor donor = donorRepository.findById(request.getUserId())
@@ -78,6 +81,7 @@ public class DonorService {
         donorRepository.save(donor);
     }
 
+    @Override
     public DonorDTO getInfo(Long userId) {
 
         UserDTO userDTO = userExternalAPI.findUserById(userId)
