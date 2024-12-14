@@ -1,9 +1,11 @@
 package com.charitan.profile.charity.service;
 
+import com.charitan.profile.charity.CharityExternalAPI;
 import com.charitan.profile.charity.dto.CharityCreationRequest;
 import com.charitan.profile.charity.dto.CharityDTO;
 import com.charitan.profile.charity.dto.CharityUpdateRequest;
 import com.charitan.profile.charity.entity.Charity;
+import com.charitan.profile.charity.enums.OrganizationType;
 import com.charitan.profile.charity.repository.CharityRepository;
 import com.charitan.profile.stripe.StripeExternalAPI;
 import com.charitan.profile.user.UserExternalAPI;
@@ -20,13 +22,14 @@ import java.util.Map;
 @Service
 @Transactional
 @RequiredArgsConstructor
-public class CharityService {
+public class CharityService implements CharityExternalAPI {
     @Autowired
     private CharityRepository charityRepository;
     private final UserExternalAPI userExternalAPI;
     private final StripeExternalAPI stripeExternalAPI;
 
     //TODO: send email on successful creation
+    @Override
     public void createCharity(CharityCreationRequest request) {
         UserDTO userDTO = userExternalAPI.findUserById(request.getUserId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User is not found."));
@@ -43,6 +46,14 @@ public class CharityService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User is not charity.");
         }
 
+        // Validate and parse organizationType
+        OrganizationType organizationType;
+        try {
+            organizationType = OrganizationType.valueOf(request.getOrganizationType().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid organization type.");
+        }
+
         String stripeId;
         try {
             stripeId = stripeExternalAPI.createStripeCustomer(
@@ -55,11 +66,12 @@ public class CharityService {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to create user in Stripe: " + e.getMessage());
         }
 
-        Charity charity = new Charity(request.getUserId(), request.getCompanyName(), request.getAddress(), request.getTaxCode(), stripeId);
+        Charity charity = new Charity(request.getUserId(), request.getCompanyName(), request.getAddress(), request.getTaxCode(), organizationType, stripeId);
 
         charityRepository.save(charity);
     }
 
+    @Override
     public void updateCharity(CharityUpdateRequest request) {
 
         Charity charity = charityRepository.findById(request.getUserId())

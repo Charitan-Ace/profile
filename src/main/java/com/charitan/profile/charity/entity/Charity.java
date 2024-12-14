@@ -1,9 +1,7 @@
 package com.charitan.profile.charity.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import com.charitan.profile.charity.enums.OrganizationType;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -29,6 +27,10 @@ public class Charity {
 
     @Column(name="tax_code")
     private String taxCode;
+
+    @Column(name="organization_type")
+    @Enumerated(EnumType.STRING) // Use STRING to store enum names
+    private OrganizationType organizationType;
 
     @Column(name="stripe_id")
     private String stripeId;

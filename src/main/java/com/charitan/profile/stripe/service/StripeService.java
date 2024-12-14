@@ -4,6 +4,7 @@ import com.charitan.profile.stripe.StripeExternalAPI;
 
 import com.stripe.model.Customer;
 import com.stripe.Stripe;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,10 +18,10 @@ public class StripeService implements StripeExternalAPI {
     @Value("${stripe.secret}")
     private String stripeSecretKey;
 
-    public StripeService() {
-        Stripe.apiKey = this.stripeSecretKey; // Set Stripe API key globally
+    @PostConstruct
+    public void init() {
+        Stripe.apiKey = this.stripeSecretKey; // Set the API key after the bean is constructed
     }
-
     public String createStripeCustomer(String email, String name, String description, Map<String, String> metadata) {
         try {
             Map<String, Object> customerParams = new HashMap<>();
