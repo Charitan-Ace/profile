@@ -1,13 +1,20 @@
 package com.charitan.profile.charity.dto;
 
 import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 
+import java.util.UUID;
+
 @Getter
+@AllArgsConstructor
 public class CharityCreationRequest {
 
     @NotNull(message = "User ID is required")
-    private Long userId;
+    private UUID userId;
+
+    @NotNull(message = "User email is required")
+    private String email;
 
     @NotNull(message = "Company name is required")
     private String companyName;

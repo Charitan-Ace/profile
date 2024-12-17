@@ -8,8 +8,6 @@ import com.charitan.profile.charity.entity.Charity;
 import com.charitan.profile.charity.enums.OrganizationType;
 import com.charitan.profile.charity.repository.CharityRepository;
 import com.charitan.profile.stripe.StripeExternalAPI;
-import com.charitan.profile.user.UserExternalAPI;
-import com.charitan.profile.user.dto.UserDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -18,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Map;
+import java.util.UUID;
 
 @Service
 @Transactional
@@ -25,25 +24,14 @@ import java.util.Map;
 public class CharityService implements CharityExternalAPI {
     @Autowired
     private CharityRepository charityRepository;
-    private final UserExternalAPI userExternalAPI;
     private final StripeExternalAPI stripeExternalAPI;
 
     //TODO: send email on successful creation
     @Override
     public void createCharity(CharityCreationRequest request) {
-        UserDTO userDTO = userExternalAPI.findUserById(request.getUserId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User is not found."));
 
-        if (charityRepository.existsById(userDTO.getId())) {
+        if (charityRepository.existsById(request.getUserId())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Charity is already created.");
-        }
-
-        if (!userDTO.isVerfied()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User is not verified.");
-        }
-
-        if (!userDTO.getRole().getName().equals("CHARITY")) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User is not charity.");
         }
 
         // Validate and parse organizationType
@@ -57,10 +45,10 @@ public class CharityService implements CharityExternalAPI {
         String stripeId;
         try {
             stripeId = stripeExternalAPI.createStripeCustomer(
-                    userDTO.getEmail(),
+                    request.getEmail(),
                     request.getCompanyName(),
-                    "Charity ID: " + userDTO.getId(),
-                    Map.of("charityId", String.valueOf(userDTO.getId()))
+                    "Charity ID: " + request.getUserId(),
+                    Map.of("charityId", String.valueOf(request.getUserId()))
             );
         } catch (Exception e) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to create user in Stripe: " + e.getMessage());
@@ -90,14 +78,13 @@ public class CharityService implements CharityExternalAPI {
         charityRepository.save(charity);
     }
 
-    public CharityDTO getInfo(Long userId) {
-
-        UserDTO userDTO = userExternalAPI.findUserById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User is not found."));
+    //TODO: get email from auth service
+    @Override
+    public CharityDTO getInfo(UUID userId) {
 
         Charity charity = charityRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Charity not found."));
 
-        return new CharityDTO(charity, userDTO.getEmail());
+        return new CharityDTO(charity, "dummy@gmail.com");
     }
 }

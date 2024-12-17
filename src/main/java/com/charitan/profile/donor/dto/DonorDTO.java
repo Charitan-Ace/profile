@@ -3,10 +3,12 @@ package com.charitan.profile.donor.dto;
 import com.charitan.profile.donor.entity.Donor;
 import lombok.Getter;
 
+import java.util.UUID;
+
 @Getter
 public class DonorDTO {
 
-    private final Long userId;
+    private final UUID userId;
     private final String email;
     private final String firstName;
     private final String lastName;

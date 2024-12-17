@@ -7,6 +7,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.UUID;
+
 @Entity
 @Table(name="TBL_CHARITIES")
 @NoArgsConstructor
@@ -17,7 +19,7 @@ public class Charity {
 
     @Id
     @Column(name="user_id")
-    private Long userId;
+    private UUID userId;
 
     @Column(name="company_name")
     private String companyName;

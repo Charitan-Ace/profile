@@ -11,6 +11,8 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.UUID;
+
 @Controller
 @RequestMapping("api/profile/donor")
 public class DonorController {
@@ -48,7 +50,7 @@ public class DonorController {
     }
 
     @GetMapping("/info")
-    public ResponseEntity<Object> getInfo(@RequestParam("id") Long userId) {
+    public ResponseEntity<Object> getInfo(@RequestParam("id") UUID userId) {
 
         try {
             return ResponseEntity.status(HttpStatus.OK).body(donorService.getInfo(userId));

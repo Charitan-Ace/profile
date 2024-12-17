@@ -9,6 +9,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.UUID;
+
 @Entity
 @Table(name="TBL_DONORS")
 @NoArgsConstructor
@@ -19,7 +21,7 @@ public class Donor {
 
     @Id
     @Column(name="user_id")
-    private Long userId;
+    private UUID userId;
 
     @Column(name="last_name")
     private String lastName;

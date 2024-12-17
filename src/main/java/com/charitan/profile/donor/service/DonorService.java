@@ -7,8 +7,6 @@ import com.charitan.profile.donor.dto.DonorUpdateRequest;
 import com.charitan.profile.donor.entity.Donor;
 import com.charitan.profile.donor.repository.DonorRepository;
 import com.charitan.profile.stripe.StripeExternalAPI;
-import com.charitan.profile.user.UserExternalAPI;
-import com.charitan.profile.user.dto.UserDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -17,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Map;
+import java.util.UUID;
 
 @Service
 @Transactional
@@ -25,39 +24,28 @@ public class DonorService implements DonorExternalAPI {
     @Autowired
     private DonorRepository donorRepository;
     private final StripeExternalAPI stripeExternalAPI;
-    private final UserExternalAPI userExternalAPI;
 
     //TODO: send email on successful creation
     @Override
     public void createDonor(DonorCreationRequest request) {
-        UserDTO userDTO = userExternalAPI.findUserById(request.getUserId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User is not found."));
 
-        if (donorRepository.existsById(userDTO.getId())) {
+        if (donorRepository.existsById(request.getUserId())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Donor is already created.");
-        }
-
-        if (!userDTO.isVerfied()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User is not verified.");
-        }
-
-        if (!userDTO.getRole().getName().equals("DONOR")) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User is not donor.");
         }
 
         String stripeId;
         try {
             stripeId = stripeExternalAPI.createStripeCustomer(
-                    userDTO.getEmail(),
+                    request.getEmail(),
                     request.getFirstName() + " " + request.getLastName(),
-                    "Donor ID: " + userDTO.getId(),
-                    Map.of("donorId", String.valueOf(userDTO.getId()))
+                    "Donor ID: " + request.getUserId(),
+                    Map.of("donorId", String.valueOf(request.getUserId()))
             );
         } catch (Exception e) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to create user in Stripe: " + e.getMessage());
         }
 
-        Donor donor = new Donor(userDTO.getId(), request.getLastName(), request.getFirstName(), request.getAddress(), stripeId);
+        Donor donor = new Donor(request.getUserId(), request.getLastName(), request.getFirstName(), request.getAddress(), stripeId);
 
         donorRepository.save(donor);
     }
@@ -81,15 +69,13 @@ public class DonorService implements DonorExternalAPI {
         donorRepository.save(donor);
     }
 
+    //TODO: get email from auth service
     @Override
-    public DonorDTO getInfo(Long userId) {
-
-        UserDTO userDTO = userExternalAPI.findUserById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User is not found."));
+    public DonorDTO getInfo(UUID userId) {
 
         Donor donor = donorRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Donor not found."));
 
-        return new DonorDTO(donor, userDTO.getEmail());
+        return new DonorDTO(donor, "dummy@gmail.com");
     }
 }
