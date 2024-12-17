@@ -4,10 +4,12 @@ import com.charitan.profile.charity.entity.Charity;
 import jakarta.persistence.Column;
 import lombok.Getter;
 
+import java.util.UUID;
+
 @Getter
 public class CharityDTO {
 
-    private final Long userId;
+    private final UUID userId;
     private final String email;
     private final String companyName;
     private final String address;

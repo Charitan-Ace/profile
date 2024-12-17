@@ -11,6 +11,8 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.UUID;
+
 @RestController
 @Validated
 @RequestMapping("api/profile/charity")
@@ -50,7 +52,7 @@ public class CharityController {
     }
 
     @GetMapping("/info")
-    public ResponseEntity<Object> getInfo(@RequestParam("id") Long userId) {
+    public ResponseEntity<Object> getInfo(@RequestParam("id") UUID userId) {
 
         try {
             return ResponseEntity.status(HttpStatus.OK).body(charityService.getInfo(userId));

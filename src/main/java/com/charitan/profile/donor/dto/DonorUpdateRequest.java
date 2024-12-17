@@ -3,10 +3,12 @@ package com.charitan.profile.donor.dto;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 
+import java.util.UUID;
+
 @Getter
 public class DonorUpdateRequest {
     @NotNull(message = "User ID is required")
-    private Long userId;
+    private UUID userId;
 
     private String firstName;
 
