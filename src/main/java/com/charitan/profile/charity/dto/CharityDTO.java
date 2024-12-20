@@ -10,15 +10,13 @@ import java.util.UUID;
 public class CharityDTO {
 
     private final UUID userId;
-    private final String email;
     private final String companyName;
     private final String address;
     private final String taxCode;
     private final String stripeId;
 
-    public CharityDTO(Charity charity, String email) {
+    public CharityDTO(Charity charity) {
         this.userId = charity.getUserId();
-        this.email = email;
         this.companyName = charity.getCompanyName();
         this.address = charity.getAddress();
         this.taxCode = charity.getTaxCode();

@@ -9,15 +9,13 @@ import java.util.UUID;
 public class DonorDTO {
 
     private final UUID userId;
-    private final String email;
     private final String firstName;
     private final String lastName;
     private final String address;
     private final String stripeId;
 
-    public DonorDTO(Donor donor, String email) {
+    public DonorDTO(Donor donor) {
         this.userId = donor.getUserId();
-        this.email = email;
         this.firstName = donor.getFirstName();
         this.lastName = donor.getLastName();
         this.address = donor.getAddress();

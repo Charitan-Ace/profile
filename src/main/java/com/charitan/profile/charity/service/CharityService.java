@@ -85,6 +85,6 @@ public class CharityService implements CharityExternalAPI {
         Charity charity = charityRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Charity not found."));
 
-        return new CharityDTO(charity, "dummy@gmail.com");
+        return new CharityDTO(charity);
     }
 }
