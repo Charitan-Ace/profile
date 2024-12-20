@@ -76,6 +76,6 @@ public class DonorService implements DonorExternalAPI {
         Donor donor = donorRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Donor not found."));
 
-        return new DonorDTO(donor, "dummy@gmail.com");
+        return new DonorDTO(donor);
     }
 }

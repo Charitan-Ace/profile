@@ -16,14 +16,10 @@ spring:
       max-lifetime: 60000
       connection-timeout: 30000
       pool-name: MyHikariCP
-#  kafka:
-#    bootstrap-servers: localhost:9092
-#    consumer:
-#      group-id: auth-group
-#      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-#      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
-#      properties:
-#        spring.json.trusted.packages: "*"
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: auth-group
 
 server:
   port: 0
