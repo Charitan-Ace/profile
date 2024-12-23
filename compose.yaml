@@ -7,3 +7,31 @@ services:
       POSTGRES_PASSWORD: profile
     ports:
       - '5432'
+
+  garage:
+    image: 'dxflrs/garage:3661a597fa40e6396049e4dd9fef50c14fa9e9d9'
+    depends_on:
+      - postgres
+    ports:
+      - '3900:3900'
+      - '3901:3901'
+      - '3902:3902'
+    volumes:
+      - './garage.toml:/etc/garage.toml'
+      - 'garage-meta:/var/lib/garage/meta:rw'
+      - 'garage-data:/var/lib/garage/data:rw'
+
+  init:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    entrypoint: ["/bin/sh", "-c", "/wait-for-it.sh garage:3900 -- /etc/script.sh"]
+    volumes:
+      - './script.sh:/etc/script.sh'
+      - '/var/run/docker.sock:/var/run/docker.sock'
+      - './wait-for-it.sh:/wait-for-it.sh'
+    restart: "no"
+
+volumes:
+  garage-meta:
+  garage-data:
