@@ -21,17 +21,6 @@ services:
       - 'garage-meta:/var/lib/garage/meta:rw'
       - 'garage-data:/var/lib/garage/data:rw'
 
-  init:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    entrypoint: ["/bin/sh", "-c", "/wait-for-it.sh garage:3900 -- /etc/script.sh"]
-    volumes:
-      - './script.sh:/etc/script.sh'
-      - '/var/run/docker.sock:/var/run/docker.sock'
-      - './wait-for-it.sh:/wait-for-it.sh'
-    restart: "no"
-
 volumes:
   garage-meta:
   garage-data:

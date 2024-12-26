@@ -34,4 +34,7 @@ public class Donor {
 
     @Column(name="stripe_id")
     private String stripeId;
+
+    @Column(name="assets_key")
+    private String assetsKey;
 }

@@ -54,7 +54,7 @@ public class CharityService implements CharityExternalAPI {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to create user in Stripe: " + e.getMessage());
         }
 
-        Charity charity = new Charity(request.getUserId(), request.getCompanyName(), request.getAddress(), request.getTaxCode(), organizationType, stripeId);
+        Charity charity = new Charity(request.getUserId(), request.getCompanyName(), request.getAddress(), request.getTaxCode(), organizationType, stripeId, request.getAssetsKey());
 
         charityRepository.save(charity);
     }

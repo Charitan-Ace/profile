@@ -39,7 +39,8 @@ public class KafkaConsumer {
                         email,
                         profile.get("firstName"),
                         profile.get("lastName"),
-                        profile.get("address")
+                        profile.get("address"),
+                        profile.get("assetsKey")
                 );
 
                 donorExternalAPI.createDonor(request);
@@ -50,7 +51,8 @@ public class KafkaConsumer {
                         profile.get("companyName"),
                         profile.get("address"),
                         profile.get("taxCode"),
-                        profile.get("organizationType")
+                        profile.get("organizationType"),
+                        profile.get("assetsKey")
                 );
 
                 charityExternalAPI.createCharity(request);

@@ -1,5 +1,6 @@
 package com.charitan.profile.donor.dto;
 
+import jakarta.persistence.Column;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -23,4 +24,6 @@ public class DonorCreationRequest {
     private String lastName;
 
     private String address;
+
+    private String assetsKey;
 }

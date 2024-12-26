@@ -13,6 +13,7 @@ public class DonorDTO {
     private final String lastName;
     private final String address;
     private final String stripeId;
+    private final String assetsKey;
 
     public DonorDTO(Donor donor) {
         this.userId = donor.getUserId();
@@ -20,5 +21,6 @@ public class DonorDTO {
         this.lastName = donor.getLastName();
         this.address = donor.getAddress();
         this.stripeId = donor.getStripeId();
+        this.assetsKey = donor.getAssetsKey();
     }
 }
