@@ -14,6 +14,7 @@ public class CharityDTO {
     private final String address;
     private final String taxCode;
     private final String stripeId;
+    private final String assetsKey;
 
     public CharityDTO(Charity charity) {
         this.userId = charity.getUserId();
@@ -21,5 +22,6 @@ public class CharityDTO {
         this.address = charity.getAddress();
         this.taxCode = charity.getTaxCode();
         this.stripeId = charity.getStripeId();
+        this.assetsKey = charity.getAssetsKey();
     }
 }
