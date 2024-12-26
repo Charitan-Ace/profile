@@ -3,10 +3,11 @@ package com.charitan.profile.donor.dto;
 import com.charitan.profile.donor.entity.Donor;
 import lombok.Getter;
 
+import java.io.Serializable;
 import java.util.UUID;
 
 @Getter
-public class DonorDTO {
+public class DonorDTO implements Serializable {
 
     private final UUID userId;
     private final String firstName;

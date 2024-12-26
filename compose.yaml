@@ -8,6 +8,21 @@ services:
     ports:
       - '5432'
 
+  redis:
+    image: redis:7-alpine
+    restart: always
+    ports:
+      - "6379:6379"
+    environment:
+      REDIS_PASSWORD: secret
+  redis-insight:
+    image: redis/redisinsight:latest
+    restart: always
+    ports:
+      - "5540:5540"
+    volumes:
+      - redis-insight:/data
+
   garage:
     image: 'dxflrs/garage:3661a597fa40e6396049e4dd9fef50c14fa9e9d9'
     depends_on:
@@ -24,3 +39,4 @@ services:
 volumes:
   garage-meta:
   garage-data:
+  redis-insight:

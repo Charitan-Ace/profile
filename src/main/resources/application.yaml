@@ -23,11 +23,15 @@ spring:
     producer:
       properties:
         max.block.ms: 120000
+  data:
+    redis:
+      host: redis
+      port: 6379
+      password: default
+      database: 0
 
 server:
   port: 0
-#  servlet:
-#    context-path: /charitan/api
 
 eureka:
   client:

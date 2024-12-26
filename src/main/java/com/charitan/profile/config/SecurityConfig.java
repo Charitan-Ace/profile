@@ -18,7 +18,7 @@ import org.springframework.web.cors.CorsConfiguration;
 @RequiredArgsConstructor
 @Order(SecurityProperties.BASIC_AUTH_ORDER)
 public class SecurityConfig {
-    private final String[] PUBLIC_ENDPOINT = { "/user/create", "/user/verify", "/user/sendCode", "/donor/create",
+    private final String[] PUBLIC_ENDPOINT = { "/donor/getAll",
            "/api-docs", "/v3/api-docs", "/api-docs.yaml", "/swagger-ui/**"};
 
     @Bean
