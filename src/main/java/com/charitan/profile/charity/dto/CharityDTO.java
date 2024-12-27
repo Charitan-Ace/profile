@@ -4,10 +4,11 @@ import com.charitan.profile.charity.entity.Charity;
 import jakarta.persistence.Column;
 import lombok.Getter;
 
+import java.io.Serializable;
 import java.util.UUID;
 
 @Getter
-public class CharityDTO {
+public class CharityDTO implements Serializable {
 
     private final UUID userId;
     private final String companyName;

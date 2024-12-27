@@ -7,7 +7,6 @@ import com.charitan.profile.donor.dto.DonorUpdateRequest;
 import com.charitan.profile.donor.entity.Donor;
 import com.charitan.profile.donor.repository.DonorRepository;
 import com.charitan.profile.stripe.StripeExternalAPI;
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.domain.*;
@@ -24,16 +23,20 @@ import java.util.stream.Collectors;
 
 @Service
 @Transactional
-@RequiredArgsConstructor
 public class DonorService implements DonorExternalAPI {
     @Autowired
     private DonorRepository donorRepository;
-    private final StripeExternalAPI stripeExternalAPI;
-    @Qualifier("REDIS_PROFILE")
+    @Autowired
+    private StripeExternalAPI stripeExternalAPI;
     private final RedisTemplate<String, Object> redisTemplate;
 
     private static final String DONOR_CACHE_PREFIX = "donor:";
     private static final String DONOR_LIST_CACHE_KEY = "donors:all";
+
+    // Constructor explicitly marked with @Qualifier for RedisTemplate
+    public DonorService(@Qualifier("REDIS_DONORS") RedisTemplate<String, Object> redisTemplate) {
+        this.redisTemplate = redisTemplate;
+    }
 
     //TODO: send email on successful creation
     @Override
@@ -58,6 +61,9 @@ public class DonorService implements DonorExternalAPI {
         Donor donor = new Donor(request.getUserId(), request.getLastName(), request.getFirstName(), request.getAddress(), stripeId, request.getAssetsKey());
 
         donorRepository.save(donor);
+
+        // Add the new donor to the cache
+        redisTemplate.opsForValue().set(DONOR_CACHE_PREFIX + request.getUserId(), new DonorDTO(donor));
 
         // Clear cache list on creation
         redisTemplate.delete(DONOR_LIST_CACHE_KEY);
@@ -103,8 +109,7 @@ public class DonorService implements DonorExternalAPI {
         Donor donor = donorRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Donor not found."));
 
-        DonorDTO donorDTO = new DonorDTO(donor);
-        redisTemplate.opsForValue().set(cacheKey, donorDTO);
+        redisTemplate.opsForValue().set(cacheKey, new DonorDTO(donor));
 
         return new DonorDTO(donor);
     }
