@@ -17,13 +17,12 @@ spring:
       connection-timeout: 30000
       pool-name: MyHikariCP
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     consumer:
       group-id: auth-group
     producer:
       properties:
         max.block.ms: 120000
-
 server:
   port: 0
 #  servlet:
@@ -35,11 +34,9 @@ eureka:
       defaultZone: ${EUREKA_URI:http://localhost:8761/eureka}
   instance:
     preferIpAddress: true
-
 logging:
   level:
     org.springframework.security: DEBUG
-
 springdoc:
   api-docs:
     enabled: true
