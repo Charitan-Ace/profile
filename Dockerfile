@@ -1,5 +1,5 @@
 ## BUILD STAGE ##
-FROM maven:3.9-amazoncorretto-23-alpine AS build
+FROM maven:3.9-amazoncorretto-21-alpine AS build
 WORKDIR /tmp/app
 
 # download and cache dependencies
