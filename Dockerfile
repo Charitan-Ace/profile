@@ -1,12 +1,16 @@
 ## BUILD STAGE ##
 FROM maven:3.9-amazoncorretto-21-alpine AS build
-
-COPY . /tmp/app
 WORKDIR /tmp/app
 
-# following nixpacks build command https://nixpacks.com/docs/providers/java
-RUN mvn -DoutputFile=target/mvn-dependency-list.log -B -DskipTests clean dependency:list install
+# download and cache dependencies
+COPY ./pom.xml /tmp/app
+RUN --mount=type=cache,target=/root/.m2 mvn dependency:go-offline
 
+# build the app
+COPY . /tmp/app
+RUN --mount=type=cache,target=/root/.m2 mvn -DoutputFile=target/mvn-dependency-list.log -B -DskipTests install
+
+# use layertools for build cache
 RUN mkdir -p /tmp/extracted && java -Djarmode=layertools -jar target/*jar extract --destination /tmp/extracted
 
 ## DISTROLESS IMAGE ##
