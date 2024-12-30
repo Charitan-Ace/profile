@@ -8,33 +8,82 @@ services:
     ports:
       - '5432'
 
-  redis:
+  master:
     image: redis:7-alpine
-    restart: always
+    mem_limit: 32m  # Set the memory limit to 256MB or even less
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     ports:
       - "6379:6379"
+  slave:
+    image: redis:7-alpine
+    mem_limit: 32m  # Set the memory limit to 256MB or even less
+    command: redis-server --slaveof redis-master 6379
+    links:
+      - master:redis-master
+  sentinel_one:
+    build: redis_sentinel
+    mem_limit: 32m  # Set the memory limit to 256MB or even less
     environment:
-      REDIS_PASSWORD: secret
-  redis-insight:
-    image: redis/redisinsight:latest
-    restart: always
+      - SENTINEL_DOWN_AFTER=5000
+      - SENTINEL_FAILOVER=5000
+      - SENTINEL_QUORUM=2
+      - SENTINEL_PORT=26379
+    links:
+      - master:redis-master
+      - slave
     ports:
-      - "5540:5540"
-    volumes:
-      - redis-insight:/data
+      - "10001:26379"
+  sentinel_two:
+    build: redis_sentinel
+    mem_limit: 32m  # Set the memory limit to 256MB or even less
+    environment:
+      - SENTINEL_DOWN_AFTER=5000
+      - SENTINEL_FAILOVER=5000
+      - SENTINEL_QUORUM=2
+      - SENTINEL_PORT=26379
+    links:
+      - master:redis-master
+      - slave
+    ports:
+      - "10002:26379"
+  sentinel_three:
+    build: redis_sentinel
+    mem_limit: 32m  # Set the memory limit to 256MB or even less
+    environment:
+      - SENTINEL_DOWN_AFTER=5000
+      - SENTINEL_FAILOVER=5000
+      - SENTINEL_QUORUM=2
+      - SENTINEL_PORT=26379
+    links:
+      - master:redis-master
+      - slave
+    ports:
+      - "10003:26379"
 
-  garage:
-    image: 'dxflrs/garage:3661a597fa40e6396049e4dd9fef50c14fa9e9d9'
-    depends_on:
-      - postgres
-    ports:
-      - '3900:3900'
-      - '3901:3901'
-      - '3902:3902'
-    volumes:
-      - './garage.toml:/etc/garage.toml'
-      - 'garage-meta:/var/lib/garage/meta:rw'
-      - 'garage-data:/var/lib/garage/data:rw'
+#  redis-insight:
+#    image: redis/redisinsight:latest
+#    restart: always
+#    ports:
+#      - "5540:5540"
+#    volumes:
+#      - redis-insight:/data
+
+#  garage:
+#    image: 'dxflrs/garage:3661a597fa40e6396049e4dd9fef50c14fa9e9d9'
+#    depends_on:
+#      - postgres
+#    ports:
+#      - '3900:3900'
+#      - '3901:3901'
+#      - '3902:3902'
+#    volumes:
+#      - './garage.toml:/etc/garage.toml'
+#      - 'garage-meta:/var/lib/garage/meta:rw'
+#      - 'garage-data:/var/lib/garage/data:rw'
 
 volumes:
   garage-meta:
