@@ -8,6 +8,7 @@ spring:
       hibernate:
         format_sql: true
         dialect: org.hibernate.dialect.PostgreSQLDialect
+
   datasource:
     hikari:
       maximum-pool-size: 10
@@ -16,33 +17,47 @@ spring:
       max-lifetime: 60000
       connection-timeout: 30000
       pool-name: MyHikariCP
+    url: jdbc:postgresql://aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres
+    username: postgres.ewakpdwwibeyivrjqqnb
+    password: demo
+    driver-class-name: org.postgresql.Driver
   kafka:
     bootstrap-servers: localhost:9092
     consumer:
       group-id: auth-group
     producer:
       properties:
-        max.block.ms: 120000
+        max.block.ms: 240000
+  cache:
+    type: redis
+    redis:
+      time-to-live: 6000000
+
   data:
     redis:
-      host: redis
-      port: 6379
-      password: default
-      database: 0
+      sentinel:
+        nodes: sentinel_one:26379,sentinel_two:26379,sentinel_three:26379
+        master: redismaster
+      pool:
+        max-active: 128
+        max-idle: 20
+        min-idle: 1
+        max-wait-time: 6000000
 
 server:
   port: 0
-
-eureka:
-  client:
-    serviceUrl:
-      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka}
-  instance:
-    preferIpAddress: true
+#
+#eureka:
+#  client:
+#    serviceUrl:
+#      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka}
+#  instance:
+#    preferIpAddress: true
 
 logging:
   level:
     org.springframework.security: DEBUG
+    org.springframework.redis: DEBUG
 
 springdoc:
   api-docs:
