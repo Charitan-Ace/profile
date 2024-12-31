@@ -33,73 +33,54 @@ import java.util.stream.Collectors;
 @Configuration
 public class RedisConfig {
 
-//    @Value("${spring.data.redis.sentinel.master}")
-//    private String sentinelMasterName;
-//
-//    @Value("${spring.data.redis.sentinel.nodes}")
-//    private List<String> sentinelNodes;
-//
-//    @Value("${spring.data.redis.pool.max-active}")
-//    private int maxActive;
-//
-//    @Value("${spring.data.redis.pool.max-idle}")
-//    private int maxIdle;
-//
-//    @Value("${spring.data.redis.pool.min-idle}")
-//    private int minIdle;
-//
-//    @Value("${spring.data.redis.pool.max-wait-time}")
-//    private long maxWaitTime;
-//
-//    @Bean(name="jedisConnectionFactory")
-//    public JedisConnectionFactory jedisConnectionFactory() {
-//        return new JedisConnectionFactory(
-//                redisSentinelConfiguration(),
-//                poolConfig());
-//    }
-//
-//    @Bean(name="poolConfig")
-//    public JedisPoolConfig poolConfig() {
-//        final JedisPoolConfig jedisPoolConfig = new JedisPoolConfig();
-//        jedisPoolConfig.setTestOnBorrow(true);
-//        jedisPoolConfig.setMaxTotal(maxActive);
-//        jedisPoolConfig.setMaxIdle(maxIdle);
-//        jedisPoolConfig.setMinIdle(minIdle);
-//        jedisPoolConfig.setTestOnReturn(true);
-//        jedisPoolConfig.setTestWhileIdle(true);
-//        jedisPoolConfig.setMaxWaitMillis(maxWaitTime);
-//        return jedisPoolConfig;
-//    }
-//
-//    @Bean
-//    public RedisSentinelConfiguration redisSentinelConfiguration() {
-//        return new RedisSentinelConfiguration(sentinelMasterName,
-//                new HashSet<String>(sentinelNodes));
-//    }
+    @Value("${spring.data.redis.sentinel.master}")
+    private String sentinelMasterName;
 
-    private final RedisProperties redisProperties;
+    @Value("${spring.data.redis.sentinel.nodes}")
+    private List<String> sentinelNodes;
 
-    @Bean
-    public LettuceConnectionFactory redisConnectionFactory() {
-        LettuceClientConfiguration clientConfig = LettuceClientConfiguration.builder().readFrom(ReadFrom.REPLICA_PREFERRED).build();
-        RedisSentinelConfiguration sentinelConfig = new RedisSentinelConfiguration().master(redisProperties.getSentinel().getMaster());
-        redisProperties.getSentinel().getNodes().forEach(s -> sentinelConfig.sentinel(redisProperties.getUrl(), Integer.valueOf(s)));
-        sentinelConfig.setPassword(RedisPassword.of(redisProperties.getPassword()));
-        return new LettuceConnectionFactory(sentinelConfig, clientConfig);
+    @Value("${spring.data.redis.pool.max-active}")
+    private int maxActive;
+
+    @Value("${spring.data.redis.pool.max-idle}")
+    private int maxIdle;
+
+    @Value("${spring.data.redis.pool.min-idle}")
+    private int minIdle;
+
+    @Value("${spring.data.redis.pool.max-wait-time}")
+    private long maxWaitTime;
+
+    @Bean(name="jedisConnectionFactory")
+    public JedisConnectionFactory jedisConnectionFactory() {
+        return new JedisConnectionFactory(
+                redisSentinelConfiguration(),
+                poolConfig());
+    }
+
+    @Bean(name="poolConfig")
+    public JedisPoolConfig poolConfig() {
+        final JedisPoolConfig jedisPoolConfig = new JedisPoolConfig();
+        jedisPoolConfig.setTestOnBorrow(true);
+        jedisPoolConfig.setMaxTotal(maxActive);
+        jedisPoolConfig.setMaxIdle(maxIdle);
+        jedisPoolConfig.setMinIdle(minIdle);
+        jedisPoolConfig.setTestOnReturn(true);
+        jedisPoolConfig.setTestWhileIdle(true);
+        jedisPoolConfig.setMaxWaitMillis(maxWaitTime);
+        return jedisPoolConfig;
     }
 
     @Bean
-    public CacheManager cacheManager() {
-        RedisCacheConfiguration redisCacheConfiguration = RedisCacheConfiguration.defaultCacheConfig().disableCachingNullValues().entryTtl(Duration.ofMinutes(30))
-                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(RedisSerializer.json()));
-        redisCacheConfiguration.usePrefix();
-        return RedisCacheManager.RedisCacheManagerBuilder.fromConnectionFactory(redisConnectionFactory()).cacheDefaults(redisCacheConfiguration).build();
+    public RedisSentinelConfiguration redisSentinelConfiguration() {
+        return new RedisSentinelConfiguration(sentinelMasterName,
+                new HashSet<String>(sentinelNodes));
     }
 
     @Bean(name = "REDIS_DONORS")
-    public RedisTemplate<String, Object> donorRedisTemplate(RedisConnectionFactory redisConnectionFactory) {
+    public RedisTemplate<String, Object> donorRedisTemplate() {
         RedisTemplate<String, Object> redisTemplate = new RedisTemplate<>();
-        redisTemplate.setConnectionFactory(redisConnectionFactory());
+        redisTemplate.setConnectionFactory(jedisConnectionFactory());
         redisTemplate.setKeySerializer(jackson2JsonRedisSerializer());
         redisTemplate.setValueSerializer(jackson2JsonRedisSerializer());
         redisTemplate.setHashKeySerializer(jackson2JsonRedisSerializer());
@@ -109,9 +90,9 @@ public class RedisConfig {
     }
 
     @Bean(name = "REDIS_CHARITIES")
-    public RedisTemplate<String, Object> charityRedisTemplate(RedisConnectionFactory redisConnectionFactory) {
+    public RedisTemplate<String, Object> charityRedisTemplate() {
         RedisTemplate<String, Object> redisTemplate = new RedisTemplate<>();
-        redisTemplate.setConnectionFactory(redisConnectionFactory());
+        redisTemplate.setConnectionFactory(jedisConnectionFactory());
         redisTemplate.setKeySerializer(jackson2JsonRedisSerializer());
         redisTemplate.setValueSerializer(jackson2JsonRedisSerializer());
         redisTemplate.setHashKeySerializer(jackson2JsonRedisSerializer());

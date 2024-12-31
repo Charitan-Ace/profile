@@ -32,8 +32,8 @@ spring:
   data:
     redis:
       sentinel:
-        nodes: sentinel_one:26379,sentinel_two:26379,sentinel_three:26379
-        master: redismaster
+        nodes: profile-sentinel-one:26379,profile-sentinel-two:26379,profile-sentinel-three:26379
+        master: mymaster
       pool:
         max-active: 128
         max-idle: 20
