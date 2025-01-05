@@ -70,7 +70,7 @@ public class CharityService implements CharityExternalAPI {
 
         charityRepository.save(charity);
 
-        // Add the new donor to the cache
+        // Add the new charity to the cache
         redisTemplate.opsForValue().set(CHARITY_CACHE_PREFIX + request.getUserId(), new CharityDTO(charity));
 
         // Clear cache list on creation
@@ -135,6 +135,7 @@ public class CharityService implements CharityExternalAPI {
             return new PageImpl<>(cachedCharities, pageable, cachedCharities.size());
         }
 
+        // If not exist in Redis, then get value from database
         Page<Charity> charitiesPage = charityRepository.findAll(pageable);
 
         List<CharityDTO> charitiesResponses = charitiesPage.getContent().stream()

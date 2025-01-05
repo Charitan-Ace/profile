@@ -1,4 +1,4 @@
-package com.charitan.profile.donor.entity;
+package com.charitan.profile.donor.internal;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

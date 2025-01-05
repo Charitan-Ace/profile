@@ -1,6 +1,7 @@
 package com.charitan.profile.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import io.lettuce.core.ReadFrom;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -17,10 +18,7 @@ import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
 import org.springframework.data.redis.connection.lettuce.LettuceClientConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
-import org.springframework.data.redis.serializer.RedisSerializationContext;
-import org.springframework.data.redis.serializer.RedisSerializer;
-import org.springframework.data.redis.serializer.StringRedisSerializer;
+import org.springframework.data.redis.serializer.*;
 import redis.clients.jedis.JedisPoolConfig;
 
 import java.time.Duration;
@@ -77,14 +75,21 @@ public class RedisConfig {
                 new HashSet<String>(sentinelNodes));
     }
 
+    @Bean
+    public ObjectMapper objectMapper() {
+        return JsonMapper.builder()
+                .findAndAddModules()
+                .build();
+    }
+
     @Bean(name = "REDIS_DONORS")
     public RedisTemplate<String, Object> donorRedisTemplate() {
         RedisTemplate<String, Object> redisTemplate = new RedisTemplate<>();
         redisTemplate.setConnectionFactory(jedisConnectionFactory());
-        redisTemplate.setKeySerializer(jackson2JsonRedisSerializer());
-        redisTemplate.setValueSerializer(jackson2JsonRedisSerializer());
-        redisTemplate.setHashKeySerializer(jackson2JsonRedisSerializer());
-        redisTemplate.setHashValueSerializer(jackson2JsonRedisSerializer());
+        redisTemplate.setKeySerializer(new StringRedisSerializer());
+        redisTemplate.setValueSerializer(genericJackson2JsonRedisSerializer());
+        redisTemplate.setHashKeySerializer(new StringRedisSerializer());  // Ensure hash keys are serialized as strings
+        redisTemplate.setHashValueSerializer(genericJackson2JsonRedisSerializer());
         redisTemplate.afterPropertiesSet();
         return redisTemplate;
     }
@@ -93,21 +98,16 @@ public class RedisConfig {
     public RedisTemplate<String, Object> charityRedisTemplate() {
         RedisTemplate<String, Object> redisTemplate = new RedisTemplate<>();
         redisTemplate.setConnectionFactory(jedisConnectionFactory());
-        redisTemplate.setKeySerializer(jackson2JsonRedisSerializer());
-        redisTemplate.setValueSerializer(jackson2JsonRedisSerializer());
-        redisTemplate.setHashKeySerializer(jackson2JsonRedisSerializer());
-        redisTemplate.setHashValueSerializer(jackson2JsonRedisSerializer());
+        redisTemplate.setKeySerializer(new StringRedisSerializer());
+        redisTemplate.setValueSerializer(genericJackson2JsonRedisSerializer());
+        redisTemplate.setHashKeySerializer(new StringRedisSerializer());  // Ensure hash keys are serialized as strings
+        redisTemplate.setHashValueSerializer(genericJackson2JsonRedisSerializer());
         redisTemplate.afterPropertiesSet();
         return redisTemplate;
     }
 
     @Bean
-    public Jackson2JsonRedisSerializer jackson2JsonRedisSerializer() {
-        return new Jackson2JsonRedisSerializer(String.class);
-    }
-
-    @Bean
-    public ObjectMapper objectMapper() {
-        return new ObjectMapper();
+    public GenericJackson2JsonRedisSerializer genericJackson2JsonRedisSerializer() {
+        return new GenericJackson2JsonRedisSerializer();
     }
 }

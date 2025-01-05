@@ -2,8 +2,8 @@ package com.charitan.profile.kafka.consumer;
 
 import com.charitan.profile.charity.CharityExternalAPI;
 import com.charitan.profile.charity.dto.CharityCreationRequest;
-import com.charitan.profile.donor.DonorExternalAPI;
-import com.charitan.profile.donor.dto.DonorCreationRequest;
+import com.charitan.profile.donor.external.DonorExternalAPI;
+import com.charitan.profile.donor.external.dtos.DonorCreationRequest;
 import com.charitan.profile.kafka.enums.AuthConsumerTopic;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;

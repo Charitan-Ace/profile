@@ -1,6 +1,5 @@
-package com.charitan.profile.donor.dto;
+package com.charitan.profile.donor.external.dtos;
 
-import jakarta.persistence.Column;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Getter;

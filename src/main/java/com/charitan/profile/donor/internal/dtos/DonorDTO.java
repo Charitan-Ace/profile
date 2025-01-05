@@ -1,20 +1,22 @@
-package com.charitan.profile.donor.dto;
+package com.charitan.profile.donor.internal.dtos;
 
-import com.charitan.profile.donor.entity.Donor;
+import com.charitan.profile.donor.internal.Donor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
 import java.util.UUID;
 
 @Getter
+@NoArgsConstructor
 public class DonorDTO implements Serializable {
 
-    private final UUID userId;
-    private final String firstName;
-    private final String lastName;
-    private final String address;
-    private final String stripeId;
-    private final String assetsKey;
+    private UUID userId;
+    private String firstName;
+    private String lastName;
+    private String address;
+    private String stripeId;
+    private String assetsKey;
 
     public DonorDTO(Donor donor) {
         this.userId = donor.getUserId();

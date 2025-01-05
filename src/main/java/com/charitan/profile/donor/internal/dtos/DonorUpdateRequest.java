@@ -1,4 +1,4 @@
-package com.charitan.profile.donor.dto;
+package com.charitan.profile.donor.internal.dtos;
 
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
