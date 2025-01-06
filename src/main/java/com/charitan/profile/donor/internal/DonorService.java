@@ -11,7 +11,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.domain.*;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,7 +26,8 @@ public class DonorService implements DonorExternalAPI, DonorInternalAPI {
     private DonorRepository donorRepository;
     @Autowired
     private StripeExternalAPI stripeExternalAPI;
-    private final RedisTemplate<String, Object> redisTemplate;
+    private final RedisTemplate<String, DonorDTO> redisTemplate;
+    private final RedisTemplate<String, String> redisZSetTemplate;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -35,8 +35,10 @@ public class DonorService implements DonorExternalAPI, DonorInternalAPI {
     private static final String DONOR_LIST_CACHE_KEY = "donors:all";
 
     // Constructor explicitly marked with @Qualifier for RedisTemplate
-    public DonorService(@Qualifier("REDIS_DONORS") RedisTemplate<String, Object> redisTemplate) {
+    public DonorService(@Qualifier("REDIS_DONORS") RedisTemplate<String, DonorDTO> redisTemplate,
+                        @Qualifier("REDIS_DONORS_ZSET") RedisTemplate<String, String> redisZSetTemplate) {
         this.redisTemplate = redisTemplate;
+        this.redisZSetTemplate = redisZSetTemplate;
     }
 
     //TODO: send email on successful creation
@@ -68,7 +70,7 @@ public class DonorService implements DonorExternalAPI, DonorInternalAPI {
 
         // Add to sorted set with a lexicographical member key
         String compositeKey = donor.getLastName().trim().toLowerCase() + ":" + donor.getUserId();
-        redisTemplate.opsForZSet().add(DONOR_LIST_CACHE_KEY, compositeKey, 0); // Score is 0 for lexicographical order
+        redisZSetTemplate.opsForZSet().add(DONOR_LIST_CACHE_KEY, compositeKey, 0); // Score is 0 for lexicographical order
     }
 
     @Override
@@ -89,7 +91,7 @@ public class DonorService implements DonorExternalAPI, DonorInternalAPI {
 
         // Add to sorted set with a lexicographical member key
         String compositeKey = donor.getLastName().trim().toLowerCase() + ":" + donor.getUserId();
-        redisTemplate.opsForZSet().add(DONOR_LIST_CACHE_KEY, compositeKey, 0);
+        redisZSetTemplate.opsForZSet().add(DONOR_LIST_CACHE_KEY, compositeKey, 0);
 
         return new DonorTransactionDTO(donor);
     }
@@ -110,7 +112,7 @@ public class DonorService implements DonorExternalAPI, DonorInternalAPI {
 
             // Add to sorted set with a lexicographical member key
             compositeKey = request.getLastName().trim().toLowerCase() + ":" + donor.getUserId();
-            redisTemplate.opsForZSet().add(DONOR_LIST_CACHE_KEY, compositeKey, 0);
+            redisZSetTemplate.opsForZSet().add(DONOR_LIST_CACHE_KEY, compositeKey, 0);
 
             donor.setLastName(request.getLastName());
         }
@@ -145,7 +147,7 @@ public class DonorService implements DonorExternalAPI, DonorInternalAPI {
 
         // Add to sorted set with a lexicographical member key
         String compositeKey = donor.getLastName().trim().toLowerCase() + ":" + donor.getUserId();
-        redisTemplate.opsForZSet().add(DONOR_LIST_CACHE_KEY, compositeKey, 0);
+        redisZSetTemplate.opsForZSet().add(DONOR_LIST_CACHE_KEY, compositeKey, 0);
 
         return new DonorDTO(donor);
     }
@@ -155,10 +157,19 @@ public class DonorService implements DonorExternalAPI, DonorInternalAPI {
         long start = (long) pageNo * pageSize;
         long end = start + pageSize - 1;
 
-        // Fetch composite keys from the sorted set
-        Set<Object> compositeKeys = redisTemplate.opsForZSet().range(DONOR_LIST_CACHE_KEY, start, end);
+        long donorInDB = donorRepository.count();
 
-        if (compositeKeys == null || compositeKeys.isEmpty() || compositeKeys.size() != donorRepository.count()) {
+        if (start > donorInDB) {
+            return Page.empty(PageRequest.of(pageNo, pageSize));
+        }
+
+        if (end > donorInDB) {
+            end = donorInDB;
+        }
+
+        List<String> compositeKeys = new ArrayList<>(redisZSetTemplate.opsForZSet().range(DONOR_LIST_CACHE_KEY, start, end));
+
+        if (compositeKeys.isEmpty() || compositeKeys.size() != donorInDB) {
 
             System.out.println("From db");
             // Fallback to database if cache is empty
@@ -175,7 +186,7 @@ public class DonorService implements DonorExternalAPI, DonorInternalAPI {
 
                 // Add donor to the sorted set with lexicographical order based on lastName
                 String compositeKey = donor.getLastName().trim().toLowerCase() + ":" + donor.getUserId();
-                redisTemplate.opsForZSet().add(DONOR_LIST_CACHE_KEY, compositeKey, 0);
+                redisZSetTemplate.opsForZSet().add(DONOR_LIST_CACHE_KEY, compositeKey, 0);
             });
 
             return new PageImpl<>(donors, PageRequest.of(pageNo, pageSize), donorPage.getTotalElements());
@@ -183,80 +194,17 @@ public class DonorService implements DonorExternalAPI, DonorInternalAPI {
 
         System.out.println("From redis");
 
-        Set<String> compositeKeyStrings = compositeKeys.stream()
-                .map(String::valueOf)
-                .collect(Collectors.toSet());
-
-        System.out.println("Composite Keys as Strings: " + compositeKeyStrings);
-
-        List<UUID> donorIds = compositeKeyStrings.stream()
+        List<UUID> donorIds = compositeKeys.stream()
                 .map(key -> key.split(":")[1])  // Extract UUID string part
                 .map(UUID::fromString)  // Convert to UUID object
                 .toList();
 
-        System.out.println("Extracted Donor IDs: " + donorIds);
-
         // Fetch full donor details from the cache
         List<DonorDTO> donors = donorIds.stream()
-//                .map(id -> (DonorDTO) redisTemplate.opsForValue().get(DONOR_CACHE_PREFIX + id))
-                .map(id -> {
-                    try {
-                        System.out.println("start getting");
-                        // Fetch the raw JSON string from Redis
-                        DonorDTO donorDTO = (DonorDTO) redisTemplate.opsForValue().get(DONOR_CACHE_PREFIX + id);
-
-                        if (donorDTO == null) {
-                            System.out.println("No data found for Donor ID: " + id);
-                            return null;
-                        }
-
-                        return donorDTO;
-//
-//                        // Log the raw cached data to ensure we are getting the expected format
-//                        System.out.println("Raw data from Redis for ID " + id + ": " + cachedData);
-//
-//                        try {
-//                            // Check if the cached data is of the expected type (byte[])
-//                            if (cachedData instanceof byte[]) {
-//                                donor = objectMapper.readValue((byte[]) cachedData, DonorDTO.class);  // Deserialize if it's a byte array
-//                                System.out.println("Fetched Donor from cache for ID " + id + ": " + donor);
-//                            } else {
-//                                System.out.println("Cached data is not a byte[] for Donor ID " + id + ". It is of type: " + cachedData.getClass().getSimpleName());
-//                            }
-//                        } catch (Exception e) {
-//                            System.out.println("Error deserializing Donor for ID inner " + id + ": " + e.getMessage());
-//                            e.printStackTrace();
-//                        }
-                    }catch (Exception e) {
-                        System.out.println("Error deserializing Donor for ID outer " + id + ": " + e.getMessage());
-                        e.printStackTrace();
-                        return null;
-                    }
-                })
+                .map(id -> (DonorDTO) redisTemplate.opsForValue().get(DONOR_CACHE_PREFIX + id))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
 
         return new PageImpl<>(donors, PageRequest.of(pageNo, pageSize), redisTemplate.opsForZSet().size(DONOR_LIST_CACHE_KEY));
-
-//        // Check if paginated donor list is in cache
-//        Pageable pageable = PageRequest.of(pageNo, pageSize, Sort.by("lastName").descending());
-//
-//        String fieldKey = "page:" + pageNo + ":size:" + pageSize;
-//        // Retrieve the cached donors list from the hash
-//        List<DonorDTO> cachedDonors = (List<DonorDTO>) redisTemplate.opsForHash().get(DONOR_LIST_CACHE_KEY, fieldKey);
-//
-//        if (cachedDonors != null) {
-//            return new PageImpl<>(cachedDonors, pageable, cachedDonors.size());
-//        }
-//
-//        Page<Donor> donorsPage = donorRepository.findAll(pageable);
-//
-//        List<DonorDTO> donorsResponses = donorsPage.getContent().stream()
-//                .map(DonorDTO::new)
-//                .collect(Collectors.toList());
-//
-//        // Cache the result
-//        redisTemplate.opsForHash().put(DONOR_LIST_CACHE_KEY, "page:" + pageNo + ":size:" + pageSize, donorsResponses);        System.out.println("Cache");
-//        return new PageImpl<>(donorsResponses, pageable, donorsPage.getTotalElements());
     }
 }
