@@ -64,4 +64,19 @@ public class CharityController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred.");
         }
     }
+
+    @GetMapping("/all")
+    ResponseEntity<Object> getAll(
+            @RequestParam(value = "pageNo", defaultValue = "0", required = false) int pageNo,
+            @RequestParam(value = "pageSize", defaultValue = "10", required = false) int pageSize) {
+        try {
+            return ResponseEntity.status(HttpStatus.OK).body(charityService.getAll(pageNo, pageSize));
+        } catch (ResponseStatusException e) {
+            // If the exception is a ResponseStatusException, return the status and message
+            return ResponseEntity.status(e.getStatusCode()).body(e.getReason());
+        } catch (Exception e) {
+            // Handle other exceptions
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred.");
+        }
+    }
 }

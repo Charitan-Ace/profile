@@ -8,6 +8,7 @@ spring:
       hibernate:
         format_sql: true
         dialect: org.hibernate.dialect.PostgreSQLDialect
+
   datasource:
     hikari:
       maximum-pool-size: 10
@@ -22,11 +23,25 @@ spring:
       group-id: auth-group
     producer:
       properties:
-        max.block.ms: 120000
+        max.block.ms: 240000
+  cache:
+    type: redis
+    redis:
+      time-to-live: 6000000
+
+  data:
+    redis:
+      sentinel:
+        nodes: profile-sentinel-one:26379,profile-sentinel-two:26379,profile-sentinel-three:26379
+        master: mymaster
+      pool:
+        max-active: 128
+        max-idle: 20
+        min-idle: 1
+        max-wait-time: 6000000
+
 server:
   port: 0
-#  servlet:
-#    context-path: /charitan/api
 
 eureka:
   client:
@@ -37,6 +52,8 @@ eureka:
 logging:
   level:
     org.springframework.security: DEBUG
+    org.springframework.redis: DEBUG
+
 springdoc:
   api-docs:
     enabled: true
