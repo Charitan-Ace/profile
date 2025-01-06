@@ -51,9 +51,10 @@ public class DonorController {
             @RequestParam(value = "pageNo", defaultValue = "0", required = false) int pageNo,
             @RequestParam(value = "pageSize", defaultValue = "10", required = false) int pageSize,
             @RequestParam(value = "order", defaultValue = "ascending", required = false) String order,
-            @RequestParam(value = "filter", defaultValue = "lastName", required = false) String filter) {
+            @RequestParam(value = "filter", defaultValue = "lastName", required = false) String filter,
+            @RequestParam(value = "keyword", defaultValue = "", required = false) String keyword) {
         try {
-            return ResponseEntity.status(HttpStatus.OK).body(donorService.getAll(pageNo, pageSize, order, filter));
+            return ResponseEntity.status(HttpStatus.OK).body(donorService.getAll(pageNo, pageSize, order, filter, keyword));
         } catch (ResponseStatusException e) {
             // If the exception is a ResponseStatusException, return the status and message
             return ResponseEntity.status(e.getStatusCode()).body(e.getReason());

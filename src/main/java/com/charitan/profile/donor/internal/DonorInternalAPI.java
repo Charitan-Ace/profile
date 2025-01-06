@@ -9,5 +9,5 @@ import java.util.UUID;
 public interface DonorInternalAPI {
     public void updateDonor(DonorUpdateRequest request);
     public DonorDTO getInfo(UUID userId);
-    public Page<DonorDTO> getAll(int pageNo, int pageSize, String order, String filter);
+    public Page<DonorDTO> getAll(int pageNo, int pageSize, String order, String filter, String keyword);
 }

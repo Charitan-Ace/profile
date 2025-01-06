@@ -101,7 +101,7 @@ public class DonorService implements DonorExternalAPI, DonorInternalAPI {
         Donor donor = donorRepository.findById(request.getUserId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Donor not found."));
 
-        if (!Objects.equals(request.getFirstName(), donor.getFirstName())) {
+        if (!Objects.equals(request.getFirstName(), donor.getFirstName()) && request.getFirstName() != null) {
             // Remove the old firstName from sorted set
             String compositeKey = donor.getFirstName().trim().toLowerCase() + ":" + donor.getUserId();
             redisTemplate.opsForZSet().remove(DONOR_LIST_CACHE_KEY_FIRST_NAME, compositeKey);
@@ -112,7 +112,7 @@ public class DonorService implements DonorExternalAPI, DonorInternalAPI {
 
             donor.setFirstName(request.getFirstName());
         }
-        if (!Objects.equals(request.getLastName(), donor.getLastName())) {
+        if (!Objects.equals(request.getLastName(), donor.getLastName()) && request.getLastName() != null) {
             // Remove the old lastName from sorted set
             String compositeKey = donor.getLastName().trim().toLowerCase() + ":" + donor.getUserId();
             redisTemplate.opsForZSet().remove(DONOR_LIST_CACHE_KEY_LAST_NAME, compositeKey);
@@ -123,7 +123,7 @@ public class DonorService implements DonorExternalAPI, DonorInternalAPI {
 
             donor.setLastName(request.getLastName());
         }
-        if (!Objects.equals(request.getAddress(), donor.getAddress())) {
+        if (!Objects.equals(request.getAddress(), donor.getAddress()) && request.getAddress() != null) {
             donor.setAddress(request.getAddress());
         }
 
@@ -157,7 +157,7 @@ public class DonorService implements DonorExternalAPI, DonorInternalAPI {
         return new DonorDTO(donor);
     }
 
-    public Page<DonorDTO> getAll(int pageNo, int pageSize, String order, String filter) {
+    public Page<DonorDTO> getAll(int pageNo, int pageSize, String order, String filter, String keyword) {
 
         long start = (long) pageNo * pageSize;
         long end = start + pageSize - 1;
@@ -173,27 +173,46 @@ public class DonorService implements DonorExternalAPI, DonorInternalAPI {
         }
 
         List<String> compositeKeys;
-        if (order.equals("ascending")) {
+        if (order.equalsIgnoreCase("ascending")) {
             compositeKeys = new ArrayList<>(redisZSetTemplate.opsForZSet().range(DONOR_LIST_CACHE_KEY + ":" + filter.toLowerCase(), start, end));
         } else {
             compositeKeys = new ArrayList<>(redisZSetTemplate.opsForZSet().reverseRange(DONOR_LIST_CACHE_KEY + ":" + filter.toLowerCase(), start, end));
         }
 
-        if (compositeKeys.isEmpty() || compositeKeys.size() != donorInDB) {
+        // If Redis cache is empty or doesn't match the database count, fallback to DB
+        if (compositeKeys == null || compositeKeys.isEmpty() || compositeKeys.size() != donorInDB) {
+            System.out.println("From DB");
+            Page<Donor> donorPage;
 
-            System.out.println("From db");
-            // Fallback to database if cache is empty
-            Page<Donor> donorPage = donorRepository.findAll(PageRequest.of(pageNo, pageSize, Sort.by("lastName").ascending()));
+            if (keyword != null && !keyword.isEmpty()) {
+                // Search with keyword in DB
+                donorPage = filter.equalsIgnoreCase("firstName")
+                        ? donorRepository.findByFirstNameContainingIgnoreCase(keyword, PageRequest.of(pageNo, pageSize, Sort.by("firstName").ascending()))
+                        : donorRepository.findByLastNameContainingIgnoreCase(keyword, PageRequest.of(pageNo, pageSize, Sort.by("lastName").ascending()));
+            } else {
+                if (filter.equalsIgnoreCase("firstName")) {
+                    if (order.equalsIgnoreCase("ascending")) {
+                        donorPage = donorRepository.findAll(PageRequest.of(pageNo, pageSize, Sort.by("firstName").ascending()));
+                    } else {
+                        donorPage = donorRepository.findAll(PageRequest.of(pageNo, pageSize, Sort.by("firstName").descending()));
+                    }
+                } else {
+                    if (order.equalsIgnoreCase("ascending")) {
+                        donorPage = donorRepository.findAll(PageRequest.of(pageNo, pageSize, Sort.by("lastName").ascending()));
+                    } else {
+                        donorPage = donorRepository.findAll(PageRequest.of(pageNo, pageSize, Sort.by("lastName").descending()));
+                    }
+                }
+            }
+
             List<DonorDTO> donors = donorPage.getContent()
                     .stream()
                     .map(DonorDTO::new)
                     .collect(Collectors.toList());
 
-            // Cache the fetched donor list for future use
+            // Cache fetched data in Redis
             donorPage.getContent().forEach(donor -> {
-                // Cache each donor's data (DonorDTO) in Redis
                 redisTemplate.opsForValue().set(DONOR_CACHE_PREFIX + donor.getUserId(), new DonorDTO(donor));
-
                 addToRedisZSet(donor);
             });
 
@@ -203,11 +222,12 @@ public class DonorService implements DonorExternalAPI, DonorInternalAPI {
         System.out.println("From redis");
 
         List<UUID> donorIds = compositeKeys.stream()
-                .map(key -> key.split(":")[1])  // Extract UUID string part
-                .map(UUID::fromString)  // Convert to UUID object
+                .filter(key -> key.split(":")[0].toLowerCase().contains(keyword.toLowerCase()))
+                .map(key -> key.split(":")[1]) // Extract the UUID string part
+                .map(UUID::fromString) // Convert to UUID object
                 .toList();
 
-        // Fetch full donor details from the cache
+        // Fetch donor details from the cache
         List<DonorDTO> donors = donorIds.stream()
                 .map(id -> (DonorDTO) redisTemplate.opsForValue().get(DONOR_CACHE_PREFIX + id))
                 .filter(Objects::nonNull)

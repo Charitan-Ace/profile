@@ -10,8 +10,13 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisSentinelConfiguration;
 import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.data.redis.serializer.*;
-import redis.clients.jedis.JedisPoolConfig;
+import redis.clients.jedis.*;
+import redis.clients.jedis.exceptions.JedisDataException;
+import redis.clients.jedis.search.IndexDefinition;
+import redis.clients.jedis.search.IndexOptions;
+import redis.clients.jedis.search.Schema;
 
 import java.util.HashSet;
 import java.util.List;
