@@ -34,6 +34,9 @@ public class DonorService implements DonorExternalAPI, DonorInternalAPI {
     private static final String DONOR_CACHE_PREFIX = "donor:";
     private static final String DONOR_LIST_CACHE_KEY = "donors:all";
 
+    private static final String DONOR_LIST_CACHE_KEY_LAST_NAME = DONOR_LIST_CACHE_KEY + ":lastname";
+    private static final String DONOR_LIST_CACHE_KEY_FIRST_NAME = DONOR_LIST_CACHE_KEY + ":firstname";
+
     // Constructor explicitly marked with @Qualifier for RedisTemplate
     public DonorService(@Qualifier("REDIS_DONORS") RedisTemplate<String, DonorDTO> redisTemplate,
                         @Qualifier("REDIS_DONORS_ZSET") RedisTemplate<String, String> redisZSetTemplate) {
@@ -68,9 +71,7 @@ public class DonorService implements DonorExternalAPI, DonorInternalAPI {
         // Add the new donor to the cache
         redisTemplate.opsForValue().set(DONOR_CACHE_PREFIX + request.getUserId(), new DonorDTO(donor));
 
-        // Add to sorted set with a lexicographical member key
-        String compositeKey = donor.getLastName().trim().toLowerCase() + ":" + donor.getUserId();
-        redisZSetTemplate.opsForZSet().add(DONOR_LIST_CACHE_KEY, compositeKey, 0); // Score is 0 for lexicographical order
+        addToRedisZSet(donor);
     }
 
     @Override
@@ -89,9 +90,7 @@ public class DonorService implements DonorExternalAPI, DonorInternalAPI {
         // Add the missing donor to the cache
         redisTemplate.opsForValue().set(cacheKey, new DonorDTO(donor));
 
-        // Add to sorted set with a lexicographical member key
-        String compositeKey = donor.getLastName().trim().toLowerCase() + ":" + donor.getUserId();
-        redisZSetTemplate.opsForZSet().add(DONOR_LIST_CACHE_KEY, compositeKey, 0);
+        addToRedisZSet(donor);
 
         return new DonorTransactionDTO(donor);
     }
@@ -103,16 +102,24 @@ public class DonorService implements DonorExternalAPI, DonorInternalAPI {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Donor not found."));
 
         if (!Objects.equals(request.getFirstName(), donor.getFirstName())) {
+            // Remove the old firstName from sorted set
+            String compositeKey = donor.getFirstName().trim().toLowerCase() + ":" + donor.getUserId();
+            redisTemplate.opsForZSet().remove(DONOR_LIST_CACHE_KEY_FIRST_NAME, compositeKey);
+
+            // Add to sorted set with a lexicographical member key
+            compositeKey = request.getFirstName().trim().toLowerCase() + ":" + donor.getUserId();
+            redisZSetTemplate.opsForZSet().add(DONOR_LIST_CACHE_KEY_FIRST_NAME, compositeKey, 0);
+
             donor.setFirstName(request.getFirstName());
         }
         if (!Objects.equals(request.getLastName(), donor.getLastName())) {
             // Remove the old lastName from sorted set
             String compositeKey = donor.getLastName().trim().toLowerCase() + ":" + donor.getUserId();
-            redisTemplate.opsForZSet().remove(DONOR_LIST_CACHE_KEY, compositeKey);
+            redisTemplate.opsForZSet().remove(DONOR_LIST_CACHE_KEY_LAST_NAME, compositeKey);
 
             // Add to sorted set with a lexicographical member key
             compositeKey = request.getLastName().trim().toLowerCase() + ":" + donor.getUserId();
-            redisZSetTemplate.opsForZSet().add(DONOR_LIST_CACHE_KEY, compositeKey, 0);
+            redisZSetTemplate.opsForZSet().add(DONOR_LIST_CACHE_KEY_LAST_NAME, compositeKey, 0);
 
             donor.setLastName(request.getLastName());
         }
@@ -145,14 +152,12 @@ public class DonorService implements DonorExternalAPI, DonorInternalAPI {
 
         redisTemplate.opsForValue().set(cacheKey, new DonorDTO(donor));
 
-        // Add to sorted set with a lexicographical member key
-        String compositeKey = donor.getLastName().trim().toLowerCase() + ":" + donor.getUserId();
-        redisZSetTemplate.opsForZSet().add(DONOR_LIST_CACHE_KEY, compositeKey, 0);
-
+        addToRedisZSet(donor);
+        
         return new DonorDTO(donor);
     }
 
-    public Page<DonorDTO> getAll(int pageNo, int pageSize) {
+    public Page<DonorDTO> getAll(int pageNo, int pageSize, String order, String filter) {
 
         long start = (long) pageNo * pageSize;
         long end = start + pageSize - 1;
@@ -167,7 +172,12 @@ public class DonorService implements DonorExternalAPI, DonorInternalAPI {
             end = donorInDB;
         }
 
-        List<String> compositeKeys = new ArrayList<>(redisZSetTemplate.opsForZSet().range(DONOR_LIST_CACHE_KEY, start, end));
+        List<String> compositeKeys;
+        if (order.equals("ascending")) {
+            compositeKeys = new ArrayList<>(redisZSetTemplate.opsForZSet().range(DONOR_LIST_CACHE_KEY + ":" + filter.toLowerCase(), start, end));
+        } else {
+            compositeKeys = new ArrayList<>(redisZSetTemplate.opsForZSet().reverseRange(DONOR_LIST_CACHE_KEY + ":" + filter.toLowerCase(), start, end));
+        }
 
         if (compositeKeys.isEmpty() || compositeKeys.size() != donorInDB) {
 
@@ -184,9 +194,7 @@ public class DonorService implements DonorExternalAPI, DonorInternalAPI {
                 // Cache each donor's data (DonorDTO) in Redis
                 redisTemplate.opsForValue().set(DONOR_CACHE_PREFIX + donor.getUserId(), new DonorDTO(donor));
 
-                // Add donor to the sorted set with lexicographical order based on lastName
-                String compositeKey = donor.getLastName().trim().toLowerCase() + ":" + donor.getUserId();
-                redisZSetTemplate.opsForZSet().add(DONOR_LIST_CACHE_KEY, compositeKey, 0);
+                addToRedisZSet(donor);
             });
 
             return new PageImpl<>(donors, PageRequest.of(pageNo, pageSize), donorPage.getTotalElements());
@@ -206,5 +214,15 @@ public class DonorService implements DonorExternalAPI, DonorInternalAPI {
                 .collect(Collectors.toList());
 
         return new PageImpl<>(donors, PageRequest.of(pageNo, pageSize), redisTemplate.opsForZSet().size(DONOR_LIST_CACHE_KEY));
+    }
+
+    private void addToRedisZSet(Donor donor) {
+        // Add to sorted set with a lexicographical member key
+        String compositeKey = donor.getLastName().trim().toLowerCase() + ":" + donor.getUserId();
+        redisZSetTemplate.opsForZSet().add(DONOR_LIST_CACHE_KEY_LAST_NAME, compositeKey, 0);
+
+        compositeKey = donor.getFirstName().trim().toLowerCase() + ":" + donor.getUserId();
+        redisZSetTemplate.opsForZSet().add(DONOR_LIST_CACHE_KEY_FIRST_NAME, compositeKey, 0);
+
     }
 }

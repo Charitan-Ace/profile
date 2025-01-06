@@ -60,7 +60,6 @@ public class DonorGenerator {
                 System.out.println("Save donors");
                 donorExternalAPI.createDonor(donor);
             }
-            // applicantRepo.saveAll(customers);
         }
 
     }
