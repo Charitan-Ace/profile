@@ -10,12 +10,17 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.domain.*;
+import org.springframework.data.redis.connection.RedisConnection;
+import org.springframework.data.redis.connection.zset.Tuple;
+import org.springframework.data.redis.core.Cursor;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -104,7 +109,7 @@ public class DonorService implements DonorExternalAPI, DonorInternalAPI {
         if (!Objects.equals(request.getFirstName(), donor.getFirstName()) && request.getFirstName() != null) {
             // Remove the old firstName from sorted set
             String compositeKey = donor.getFirstName().trim().toLowerCase() + ":" + donor.getUserId();
-            redisTemplate.opsForZSet().remove(DONOR_LIST_CACHE_KEY_FIRST_NAME, compositeKey);
+            redisZSetTemplate.opsForZSet().remove(DONOR_LIST_CACHE_KEY_FIRST_NAME, compositeKey);
 
             // Add to sorted set with a lexicographical member key
             compositeKey = request.getFirstName().trim().toLowerCase() + ":" + donor.getUserId();
@@ -115,7 +120,7 @@ public class DonorService implements DonorExternalAPI, DonorInternalAPI {
         if (!Objects.equals(request.getLastName(), donor.getLastName()) && request.getLastName() != null) {
             // Remove the old lastName from sorted set
             String compositeKey = donor.getLastName().trim().toLowerCase() + ":" + donor.getUserId();
-            redisTemplate.opsForZSet().remove(DONOR_LIST_CACHE_KEY_LAST_NAME, compositeKey);
+            redisZSetTemplate.opsForZSet().remove(DONOR_LIST_CACHE_KEY_LAST_NAME, compositeKey);
 
             // Add to sorted set with a lexicographical member key
             compositeKey = request.getLastName().trim().toLowerCase() + ":" + donor.getUserId();
@@ -159,10 +164,11 @@ public class DonorService implements DonorExternalAPI, DonorInternalAPI {
 
     public Page<DonorDTO> getAll(int pageNo, int pageSize, String order, String filter, String keyword) {
 
-        long start = (long) pageNo * pageSize;
-        long end = start + pageSize - 1;
+        int start = (int) pageNo * pageSize;
+        int end = start + pageSize - 1;
+        String cacheKey = DONOR_LIST_CACHE_KEY + ":" + filter.toLowerCase();
 
-        long donorInDB = donorRepository.count();
+        int donorInDB = (int) donorRepository.count();
 
         if (start > donorInDB) {
             return Page.empty(PageRequest.of(pageNo, pageSize));
@@ -172,36 +178,35 @@ public class DonorService implements DonorExternalAPI, DonorInternalAPI {
             end = donorInDB;
         }
 
-        List<String> compositeKeys;
-        if (order.equalsIgnoreCase("ascending")) {
-            compositeKeys = new ArrayList<>(redisZSetTemplate.opsForZSet().range(DONOR_LIST_CACHE_KEY + ":" + filter.toLowerCase(), start, end));
-        } else {
-            compositeKeys = new ArrayList<>(redisZSetTemplate.opsForZSet().reverseRange(DONOR_LIST_CACHE_KEY + ":" + filter.toLowerCase(), start, end));
-        }
+        Long redisZSetSize = redisZSetTemplate.opsForZSet().size(cacheKey);
 
-        // If Redis cache is empty or doesn't match the database count, fallback to DB
-        if (compositeKeys == null || compositeKeys.isEmpty() || compositeKeys.size() != donorInDB) {
+        System.out.println("redisZSetSize: " + redisZSetSize);
+        System.out.println("db size: " + donorInDB);
+        // If Redis cache is empty
+        if (redisZSetSize != donorInDB) {
             System.out.println("From DB");
             Page<Donor> donorPage;
 
             if (keyword != null && !keyword.isEmpty()) {
                 // Search with keyword in DB
-                donorPage = filter.equalsIgnoreCase("firstName")
-                        ? donorRepository.findByFirstNameContainingIgnoreCase(keyword, PageRequest.of(pageNo, pageSize, Sort.by("firstName").ascending()))
-                        : donorRepository.findByLastNameContainingIgnoreCase(keyword, PageRequest.of(pageNo, pageSize, Sort.by("lastName").ascending()));
+                if (order.equalsIgnoreCase("ascending")) {
+                    donorPage = filter.equalsIgnoreCase("firstName")
+                            ? donorRepository.findByFirstNameContainingIgnoreCase(keyword, PageRequest.of(pageNo, pageSize, Sort.by("firstName").ascending()))
+                            : donorRepository.findByLastNameContainingIgnoreCase(keyword, PageRequest.of(pageNo, pageSize, Sort.by("lastName").ascending()));
+                } else {
+                    donorPage = filter.equalsIgnoreCase("firstName")
+                            ? donorRepository.findByFirstNameContainingIgnoreCase(keyword, PageRequest.of(pageNo, pageSize, Sort.by("firstName").descending()))
+                            : donorRepository.findByLastNameContainingIgnoreCase(keyword, PageRequest.of(pageNo, pageSize, Sort.by("lastName").descending()));
+                }
             } else {
                 if (filter.equalsIgnoreCase("firstName")) {
-                    if (order.equalsIgnoreCase("ascending")) {
-                        donorPage = donorRepository.findAll(PageRequest.of(pageNo, pageSize, Sort.by("firstName").ascending()));
-                    } else {
-                        donorPage = donorRepository.findAll(PageRequest.of(pageNo, pageSize, Sort.by("firstName").descending()));
-                    }
+                    donorPage = order.equalsIgnoreCase("ascending")
+                            ? donorRepository.findAll(PageRequest.of(pageNo, pageSize, Sort.by("firstName").ascending()))
+                            : donorRepository.findAll(PageRequest.of(pageNo, pageSize, Sort.by("firstName").descending()));
                 } else {
-                    if (order.equalsIgnoreCase("ascending")) {
-                        donorPage = donorRepository.findAll(PageRequest.of(pageNo, pageSize, Sort.by("lastName").ascending()));
-                    } else {
-                        donorPage = donorRepository.findAll(PageRequest.of(pageNo, pageSize, Sort.by("lastName").descending()));
-                    }
+                    donorPage = order.equalsIgnoreCase("ascending")
+                            ? donorRepository.findAll(PageRequest.of(pageNo, pageSize, Sort.by("lastName").ascending()))
+                            : donorRepository.findAll(PageRequest.of(pageNo, pageSize, Sort.by("lastName").descending()));
                 }
             }
 
@@ -221,19 +226,66 @@ public class DonorService implements DonorExternalAPI, DonorInternalAPI {
 
         System.out.println("From redis");
 
-        List<UUID> donorIds = compositeKeys.stream()
-                .filter(key -> key.split(":")[0].toLowerCase().contains(keyword.toLowerCase()))
-                .map(key -> key.split(":")[1]) // Extract the UUID string part
-                .map(UUID::fromString) // Convert to UUID object
-                .toList();
+        List<String> matchingKeys = new ArrayList<>();
+        RedisConnection connection = redisTemplate.getConnectionFactory().getConnection();
+        ScanOptions options = ScanOptions.scanOptions()
+                .match("*" + keyword + "*:*") // Match elements containing the pattern
+                .count(10) // Scan in batches of 'batchSize'
+                .build();
+
+        // Initial cursor value for SCAN is "0"
+        byte[] cursor = "0".getBytes(); // Start with the cursor set to "0"
+        do {
+            Cursor<Tuple> scanCursor = connection.zScan(cacheKey.getBytes(StandardCharsets.UTF_8), options);
+
+            while (scanCursor.hasNext()) {
+                Tuple tuple = scanCursor.next();
+                String element = new String(tuple.getValue(), StandardCharsets.UTF_8); // Get the value (the member of the sorted set)
+                matchingKeys.add(element);
+            }
+
+            scanCursor.close();
+        } while (!new String(cursor, StandardCharsets.UTF_8).equals("0")); // Continue until the cursor returns "0"
+
+        System.out.println(Arrays.toString(matchingKeys.toArray()));
+
+        // Adjust the indices to handle edge cases
+        if (start >= matchingKeys.size()) {
+            // If start index exceeds the size of matchingKeys, return an empty page
+            return new PageImpl<>(Collections.emptyList(), Pageable.ofSize(end - start + 1), matchingKeys.size());
+        }
+
+        if (end >= matchingKeys.size()) {
+            // If end index exceeds the size of matchingKeys, adjust it to the last index
+            end = matchingKeys.size() - 1;
+        }
+
+        List<String> resultKeys;
+        // Extract the sublist based on the adjusted start and end indices
+        if (order.equalsIgnoreCase("ascending")) {
+            matchingKeys.sort(Comparator.naturalOrder());
+            resultKeys = matchingKeys.subList(start, end + 1);
+        } else {
+            matchingKeys.sort(Comparator.reverseOrder());
+            resultKeys = matchingKeys.subList(start, end + 1);
+        }
+
+        System.out.println(Arrays.toString(resultKeys.toArray()));
+
+        List<UUID> extractID = new ArrayList<>();
+        for (String key : resultKeys) {
+            extractID.add(UUID.fromString(key.split(":")[1]));
+        }
+        System.out.println(Arrays.toString(extractID.toArray()));
+
 
         // Fetch donor details from the cache
-        List<DonorDTO> donors = donorIds.stream()
+        List<DonorDTO> donors = extractID.stream()
                 .map(id -> (DonorDTO) redisTemplate.opsForValue().get(DONOR_CACHE_PREFIX + id))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
 
-        return new PageImpl<>(donors, PageRequest.of(pageNo, pageSize), redisTemplate.opsForZSet().size(DONOR_LIST_CACHE_KEY));
+        return new PageImpl<>(donors, PageRequest.of(pageNo, pageSize), matchingKeys.size());
     }
 
     private void addToRedisZSet(Donor donor) {

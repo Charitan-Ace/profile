@@ -1,4 +1,4 @@
-package com.charitan.profile.charity.enums;
+package com.charitan.profile.charity.internal;
 
 public enum OrganizationType {
     COMPANY,

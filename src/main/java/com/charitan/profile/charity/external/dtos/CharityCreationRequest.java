@@ -1,4 +1,4 @@
-package com.charitan.profile.charity.dto;
+package com.charitan.profile.charity.external.dtos;
 
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;

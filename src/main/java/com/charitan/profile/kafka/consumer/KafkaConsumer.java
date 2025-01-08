@@ -1,7 +1,7 @@
 package com.charitan.profile.kafka.consumer;
 
-import com.charitan.profile.charity.CharityExternalAPI;
-import com.charitan.profile.charity.dto.CharityCreationRequest;
+import com.charitan.profile.charity.external.CharityExternalAPI;
+import com.charitan.profile.charity.external.dtos.CharityCreationRequest;
 import com.charitan.profile.donor.external.DonorExternalAPI;
 import com.charitan.profile.donor.external.dtos.DonorCreationRequest;
 import com.charitan.profile.kafka.enums.AuthConsumerTopic;

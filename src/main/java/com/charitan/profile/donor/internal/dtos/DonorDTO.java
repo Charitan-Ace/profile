@@ -11,7 +11,7 @@ import java.util.UUID;
 @NoArgsConstructor
 public class DonorDTO implements Serializable {
 
-//    private UUID userId;
+    private UUID userId;
     private String firstName;
     private String lastName;
     private String address;
@@ -19,7 +19,7 @@ public class DonorDTO implements Serializable {
     private String assetsKey;
 
     public DonorDTO(Donor donor) {
-//        this.userId = donor.getUserId();
+        this.userId = donor.getUserId();
         this.firstName = donor.getFirstName();
         this.lastName = donor.getLastName();
         this.address = donor.getAddress();
