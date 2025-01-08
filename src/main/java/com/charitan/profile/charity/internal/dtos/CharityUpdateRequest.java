@@ -1,4 +1,4 @@
-package com.charitan.profile.charity.dto;
+package com.charitan.profile.charity.internal.dtos;
 
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
@@ -16,4 +16,6 @@ public class CharityUpdateRequest {
     private String address;
 
     private String taxCode;
+
+    private String organizationType;
 }

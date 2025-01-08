@@ -1,5 +1,6 @@
 package com.charitan.profile.config;
 
+import com.charitan.profile.charity.internal.dtos.CharityDTO;
 import com.charitan.profile.donor.internal.dtos.DonorDTO;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
@@ -11,7 +12,7 @@ import org.springframework.data.redis.connection.RedisSentinelConfiguration;
 import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.*;
-import redis.clients.jedis.JedisPoolConfig;
+import redis.clients.jedis.*;
 
 import java.util.HashSet;
 import java.util.List;
@@ -108,15 +109,39 @@ public class RedisConfig {
     }
 
     @Bean(name = "REDIS_CHARITIES")
-    public RedisTemplate<String, Object> charityRedisTemplate() {
-        RedisTemplate<String, Object> redisTemplate = new RedisTemplate<>();
-        redisTemplate.setConnectionFactory(jedisConnectionFactory());
-        redisTemplate.setKeySerializer(new StringRedisSerializer());
-        redisTemplate.setValueSerializer(genericJackson2JsonRedisSerializer());
-        redisTemplate.setHashKeySerializer(new StringRedisSerializer());  // Ensure hash keys are serialized as strings
-        redisTemplate.setHashValueSerializer(genericJackson2JsonRedisSerializer());
-        redisTemplate.afterPropertiesSet();
-        return redisTemplate;
+    public RedisTemplate<String, CharityDTO> charityRedisTemplate(ObjectMapper objectMapper) {
+        RedisTemplate<String, CharityDTO> template = new RedisTemplate<String, CharityDTO>();
+
+        Jackson2JsonRedisSerializer<CharityDTO> jsonSerializer =
+                new Jackson2JsonRedisSerializer<>(objectMapper, CharityDTO.class);
+
+        template.setConnectionFactory(jedisConnectionFactory());
+
+        template.setKeySerializer(new StringRedisSerializer());
+        template.setHashKeySerializer(new StringRedisSerializer());
+
+        template.setHashValueSerializer(jsonSerializer);
+        template.setValueSerializer(jsonSerializer);
+
+        return template;
+    }
+
+    @Bean(name = "REDIS_CHARITIES_ZSET")
+    public RedisTemplate<String, String> redisCharityZSetTemplate(ObjectMapper objectMapper) {
+        RedisTemplate<String, String> template = new RedisTemplate<String, String>();
+
+        Jackson2JsonRedisSerializer<String> jsonSerializer =
+                new Jackson2JsonRedisSerializer<>(objectMapper, String.class);
+
+        template.setConnectionFactory(jedisConnectionFactory());
+
+        template.setKeySerializer(new StringRedisSerializer());
+        template.setHashKeySerializer(new StringRedisSerializer());
+
+        template.setHashValueSerializer(jsonSerializer);
+        template.setValueSerializer(jsonSerializer);
+
+        return template;
     }
 
     @Bean

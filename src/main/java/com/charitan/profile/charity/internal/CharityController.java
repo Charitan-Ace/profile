@@ -1,8 +1,6 @@
-package com.charitan.profile.charity.controller;
+package com.charitan.profile.charity.internal;
 
-import com.charitan.profile.charity.dto.CharityCreationRequest;
-import com.charitan.profile.charity.dto.CharityUpdateRequest;
-import com.charitan.profile.charity.service.CharityService;
+import com.charitan.profile.charity.internal.dtos.CharityUpdateRequest;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -19,28 +17,13 @@ import java.util.UUID;
 public class CharityController {
 
     @Autowired
-    private CharityService charityService;
-
-    @PostMapping("/create")
-    public ResponseEntity<String> createCharity(@RequestBody @Valid CharityCreationRequest request) {
-
-        try {
-            charityService.createCharity(request);
-            return ResponseEntity.status(HttpStatus.CREATED).body("Charity registered successfully!");
-        } catch (ResponseStatusException e) {
-            // If the exception is a ResponseStatusException, return the status and message
-            return ResponseEntity.status(e.getStatusCode()).body(e.getReason());
-        } catch (Exception e) {
-            // Handle other exceptions
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred.");
-        }
-    }
+    private CharityInternalAPI charityInternalAPI;
 
     @PatchMapping("/update")
     public ResponseEntity<String> updateDonor(@RequestBody @Valid CharityUpdateRequest request) {
 
         try {
-            charityService.updateCharity(request);
+            charityInternalAPI.updateCharity(request);
             return ResponseEntity.status(HttpStatus.OK).body("Charity updated successfully!");
         } catch (ResponseStatusException e) {
             // If the exception is a ResponseStatusException, return the status and message
@@ -55,7 +38,7 @@ public class CharityController {
     public ResponseEntity<Object> getInfo(@RequestParam("id") UUID userId) {
 
         try {
-            return ResponseEntity.status(HttpStatus.OK).body(charityService.getInfo(userId));
+            return ResponseEntity.status(HttpStatus.OK).body(charityInternalAPI.getInfo(userId));
         } catch (ResponseStatusException e) {
             // If the exception is a ResponseStatusException, return the status and message
             return ResponseEntity.status(e.getStatusCode()).body(e.getReason());
@@ -68,9 +51,12 @@ public class CharityController {
     @GetMapping("/all")
     ResponseEntity<Object> getAll(
             @RequestParam(value = "pageNo", defaultValue = "0", required = false) int pageNo,
-            @RequestParam(value = "pageSize", defaultValue = "10", required = false) int pageSize) {
+            @RequestParam(value = "pageSize", defaultValue = "10", required = false) int pageSize,
+            @RequestParam(value = "order", defaultValue = "ascending", required = false) String order,
+            @RequestParam(value = "filter", defaultValue = "companyName", required = false) String filter,
+            @RequestParam(value = "keyword", defaultValue = "", required = false) String keyword) {
         try {
-            return ResponseEntity.status(HttpStatus.OK).body(charityService.getAll(pageNo, pageSize));
+            return ResponseEntity.status(HttpStatus.OK).body(charityInternalAPI.getAll(pageNo, pageSize, order, filter, keyword));
         } catch (ResponseStatusException e) {
             // If the exception is a ResponseStatusException, return the status and message
             return ResponseEntity.status(e.getStatusCode()).body(e.getReason());

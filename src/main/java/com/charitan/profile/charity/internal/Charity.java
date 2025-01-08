@@ -1,6 +1,5 @@
-package com.charitan.profile.charity.entity;
+package com.charitan.profile.charity.internal;
 
-import com.charitan.profile.charity.enums.OrganizationType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
