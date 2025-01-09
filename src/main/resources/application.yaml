@@ -20,7 +20,7 @@ spring:
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     consumer:
-      group-id: auth-group
+      group-id: profile
     producer:
       properties:
         max.block.ms: 240000
@@ -33,6 +33,7 @@ spring:
     redis:
       sentinel:
         nodes: profile-sentinel-one:26379,profile-sentinel-two:26379,profile-sentinel-three:26379
+#        nodes: 100.88.41.30:10001,100.88.41.30:10002,100.88.41.30:10003
         master: mymaster
       pool:
         max-active: 128
