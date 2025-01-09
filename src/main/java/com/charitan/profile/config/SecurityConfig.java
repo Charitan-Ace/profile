@@ -11,6 +11,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 
 @Configuration
@@ -21,16 +22,19 @@ import org.springframework.web.cors.CorsConfiguration;
 public class SecurityConfig {
     private final String[] PUBLIC_ENDPOINT = { "/donor/getAll",
            "/api-docs", "/v3/api-docs", "/api-docs.yaml", "/swagger-ui/**"};
-
+    private final ProfileCookieFilter profileCookieFilter;
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity httpSecurity) throws Exception {
         httpSecurity
-                .cors(Customizer.withDefaults())
-                .authorizeHttpRequests(request -> request
-//                        .requestMatchers(PUBLIC_ENDPOINT).permitAll()
-//                        .anyRequest().authenticated())
-                        .anyRequest().permitAll())
-                .csrf(AbstractHttpConfigurer::disable);
+                .csrf(AbstractHttpConfigurer::disable)
+                .authorizeHttpRequests((requests) -> requests
+                        .anyRequest().permitAll()
+                )
+//                .cors(Customizer.withDefaults())
+//                .authorizeHttpRequests(auth -> auth
+//                        .anyRequest().authenticated()) // Secure all other endpoints
+//                .csrf(AbstractHttpConfigurer::disable) // Disable CSRF if not needed
+                .addFilterBefore(profileCookieFilter, UsernamePasswordAuthenticationFilter.class); // Add custom filter
 
         return httpSecurity.build();
     }

@@ -10,4 +10,5 @@ public interface CharityInternalAPI {
     public void updateCharity(CharityUpdateRequest request);
     public CharityDTO getInfo(UUID userId);
     public Page<CharityDTO> getAll(int pageNo, int pageSize, String order, String filter, String keyword);
+    public CharityDTO getMyInfo();
 }

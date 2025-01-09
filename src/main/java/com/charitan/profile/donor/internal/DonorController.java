@@ -63,4 +63,17 @@ public class DonorController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred.");
         }
     }
+
+    @GetMapping("/myInfo")
+    ResponseEntity<Object> getMyInfo() {
+        try {
+            return ResponseEntity.status(HttpStatus.OK).body(donorService.getMyInfo());
+        } catch (ResponseStatusException e) {
+            // If the exception is a ResponseStatusException, return the status and message
+            return ResponseEntity.status(e.getStatusCode()).body(e.getReason());
+        } catch (Exception e) {
+            // Handle other exceptions
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred.");
+        }
+    }
 }
