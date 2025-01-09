@@ -7,7 +7,6 @@ import com.charitan.profile.donor.external.DonorExternalAPI;
 import com.charitan.profile.donor.external.dtos.DonorCreationRequest;
 import com.charitan.profile.jwt.external.JwtExternalAPI;
 import com.charitan.profile.kafka.enums.AuthConsumerTopic;
-import com.charitan.profile.kafka.enums.KeyConsumer;
 import com.charitan.profile.kafka.enums.KeyConsumerTopic;
 import io.jsonwebtoken.security.Jwks;
 import lombok.RequiredArgsConstructor;
