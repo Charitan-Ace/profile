@@ -1,5 +1,7 @@
 package com.charitan.profile.charity.internal;
 
+import com.charitan.profile.charity.internal.dtos.CharityDTO;
+import com.charitan.profile.charity.internal.dtos.CharitySelfUpdateRequest;
 import com.charitan.profile.charity.internal.dtos.CharityUpdateRequest;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,11 +22,24 @@ public class CharityController {
     private CharityInternalAPI charityInternalAPI;
 
     @PatchMapping("/update")
-    public ResponseEntity<String> updateDonor(@RequestBody @Valid CharityUpdateRequest request) {
+    public ResponseEntity<Object> updateDonor(@RequestBody @Valid CharityUpdateRequest request) {
 
         try {
-            charityInternalAPI.updateCharity(request);
-            return ResponseEntity.status(HttpStatus.OK).body("Charity updated successfully!");
+            return ResponseEntity.status(HttpStatus.OK).body(charityInternalAPI.updateCharity(request));
+        } catch (ResponseStatusException e) {
+            // If the exception is a ResponseStatusException, return the status and message
+            return ResponseEntity.status(e.getStatusCode()).body(e.getReason());
+        } catch (Exception e) {
+            // Handle other exceptions
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred.");
+        }
+    }
+
+    @PatchMapping("/update/me")
+    public ResponseEntity<Object> updateMyInfo(@RequestBody @Valid CharitySelfUpdateRequest request) {
+
+        try {
+            return ResponseEntity.status(HttpStatus.OK).body(charityInternalAPI.updateMyInfo(request));
         } catch (ResponseStatusException e) {
             // If the exception is a ResponseStatusException, return the status and message
             return ResponseEntity.status(e.getStatusCode()).body(e.getReason());

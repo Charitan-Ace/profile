@@ -4,6 +4,7 @@ import com.charitan.profile.donor.external.DonorExternalAPI;
 import com.charitan.profile.donor.external.dtos.DonorCreationRequest;
 import com.charitan.profile.donor.external.dtos.DonorTransactionDTO;
 import com.charitan.profile.donor.internal.dtos.DonorDTO;
+import com.charitan.profile.donor.internal.dtos.DonorSelfUpdateRequest;
 import com.charitan.profile.donor.internal.dtos.DonorUpdateRequest;
 import com.charitan.profile.jwt.internal.CustomUserDetails;
 import com.charitan.profile.stripe.StripeExternalAPI;
@@ -106,7 +107,7 @@ public class DonorService implements DonorExternalAPI, DonorInternalAPI {
     }
 
     @Override
-    public void updateDonor(DonorUpdateRequest request) {
+    public DonorDTO updateDonor(DonorUpdateRequest request) {
 
         Donor donor = donorRepository.findById(request.getUserId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Donor not found."));
@@ -140,7 +141,51 @@ public class DonorService implements DonorExternalAPI, DonorInternalAPI {
         donorRepository.save(donor);
 
         // Update cache for this donor
-        redisTemplate.opsForValue().set(DONOR_CACHE_PREFIX + request.getUserId(), new DonorDTO(donor));
+        redisTemplate.opsForValue().set(DONOR_CACHE_PREFIX + donor.getUserId(), new DonorDTO(donor));
+
+        return new DonorDTO(donor);
+    }
+
+    @Override
+    @PreAuthorize("hasRole('DONOR')")
+    public DonorDTO updateMyInfo(DonorSelfUpdateRequest request) {
+
+        UUID userId = getCurrentDonorId();
+        Donor donor = donorRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Donor not found."));
+
+        if (!Objects.equals(request.getFirstName(), donor.getFirstName()) && request.getFirstName() != null) {
+            // Remove the old firstName from sorted set
+            String compositeKey = donor.getFirstName().trim().toLowerCase() + ":" + donor.getUserId();
+            redisZSetTemplate.opsForZSet().remove(DONOR_LIST_CACHE_KEY_FIRST_NAME, compositeKey);
+
+            // Add to sorted set with a lexicographical member key
+            compositeKey = request.getFirstName().trim().toLowerCase() + ":" + donor.getUserId();
+            redisZSetTemplate.opsForZSet().add(DONOR_LIST_CACHE_KEY_FIRST_NAME, compositeKey, 0);
+
+            donor.setFirstName(request.getFirstName());
+        }
+        if (!Objects.equals(request.getLastName(), donor.getLastName()) && request.getLastName() != null) {
+            // Remove the old lastName from sorted set
+            String compositeKey = donor.getLastName().trim().toLowerCase() + ":" + donor.getUserId();
+            redisZSetTemplate.opsForZSet().remove(DONOR_LIST_CACHE_KEY_LAST_NAME, compositeKey);
+
+            // Add to sorted set with a lexicographical member key
+            compositeKey = request.getLastName().trim().toLowerCase() + ":" + donor.getUserId();
+            redisZSetTemplate.opsForZSet().add(DONOR_LIST_CACHE_KEY_LAST_NAME, compositeKey, 0);
+
+            donor.setLastName(request.getLastName());
+        }
+        if (!Objects.equals(request.getAddress(), donor.getAddress()) && request.getAddress() != null) {
+            donor.setAddress(request.getAddress());
+        }
+
+        donorRepository.save(donor);
+
+        // Update cache for this donor
+        redisTemplate.opsForValue().set(DONOR_CACHE_PREFIX + donor.getUserId(), new DonorDTO(donor));
+
+        return new DonorDTO(donor);
     }
 
     @Override

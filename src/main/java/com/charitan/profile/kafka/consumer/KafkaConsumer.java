@@ -8,6 +8,7 @@ import com.charitan.profile.donor.external.dtos.DonorCreationRequest;
 import com.charitan.profile.jwt.external.JwtExternalAPI;
 import com.charitan.profile.kafka.enums.AuthConsumerTopic;
 import com.charitan.profile.kafka.enums.KeyConsumer;
+import com.charitan.profile.kafka.enums.KeyConsumerTopic;
 import io.jsonwebtoken.security.Jwks;
 import lombok.RequiredArgsConstructor;
 import org.apache.kafka.common.TopicPartition;
@@ -70,7 +71,7 @@ public class KafkaConsumer extends AbstractConsumerSeekAware {
         }
     }
 
-    @KafkaListener(topics = KeyConsumer.PUBLIC_KEY_CHANGE, groupId = "profile")
+    @KafkaListener(topics = KeyConsumerTopic.PUBLIC_KEY_CHANGE, groupId = "profile")
     public void handlePublicKeyChange(String message) {
         try {
 
