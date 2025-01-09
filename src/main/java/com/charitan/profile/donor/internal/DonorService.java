@@ -259,6 +259,7 @@ public class DonorService implements DonorExternalAPI, DonorInternalAPI {
 
         List<String> matchingKeys = new ArrayList<>();
         RedisConnection connection = redisTemplate.getConnectionFactory().getConnection();
+
         ScanOptions options = ScanOptions.scanOptions()
                 .match("*" + keyword + "*:*") // Match elements containing the pattern
                 .count(10) // Scan in batches of 'batchSize'
@@ -272,7 +273,7 @@ public class DonorService implements DonorExternalAPI, DonorInternalAPI {
             while (scanCursor.hasNext()) {
                 Tuple tuple = scanCursor.next();
                 String element = new String(tuple.getValue(), StandardCharsets.UTF_8); // Get the value (the member of the sorted set)
-                matchingKeys.add(element);
+                matchingKeys.add(element.replace("\"", ""));
             }
 
             scanCursor.close();
