@@ -21,13 +21,15 @@ spring:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     consumer:
       group-id: profile
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
     producer:
-      properties:
-        max.block.ms: 240000
-        spring:
-          json:
-            trusted:
-              packages: "ace.charitan.*"
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    properties:
+      max.block.ms: 240000
+      spring:
+        json:
+          trusted:
+            packages: "ace.charitan.*"
   cache:
     type: redis
     redis:
