@@ -4,6 +4,7 @@ import com.charitan.profile.charity.external.CharityExternalAPI;
 import com.charitan.profile.charity.external.dtos.CharityCreationRequest;
 import com.charitan.profile.charity.internal.dtos.CharityDTO;
 import com.charitan.profile.charity.internal.dtos.CharityUpdateRequest;
+import com.charitan.profile.jwt.internal.CustomUserDetails;
 import com.charitan.profile.stripe.StripeExternalAPI;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -14,6 +15,10 @@ import org.springframework.data.redis.core.Cursor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -143,7 +148,31 @@ public class CharityService implements CharityExternalAPI, CharityInternalAPI {
         redisTemplate.opsForValue().set(CHARITY_CACHE_PREFIX + request.getUserId(), new CharityDTO(charity));
     }
 
-    //TODO: get email from auth service
+    @Override
+    @PreAuthorize("hasRole('CHARITY')")
+    public CharityDTO getMyInfo() {
+
+        UUID userId = getCurrentCharityId();
+
+        System.out.println(userId);
+
+        Charity charity = charityRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Charity not found."));
+
+        // Check if data is in cache
+        String cacheKey = CHARITY_CACHE_PREFIX + userId;
+        CharityDTO cachedCharity = (CharityDTO) redisTemplate.opsForValue().get(cacheKey);
+
+        if (cachedCharity != null) {
+            return cachedCharity;
+        }
+
+        redisTemplate.opsForValue().set(cacheKey, new CharityDTO(charity));
+
+        addToRedisZSet(charity);
+        return new CharityDTO(charity);
+    }
+
     @Override
     public CharityDTO getInfo(UUID userId) {
 
@@ -164,6 +193,7 @@ public class CharityService implements CharityExternalAPI, CharityInternalAPI {
         return new CharityDTO(charity);
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     public Page<CharityDTO> getAll(int pageNo, int pageSize, String order, String filter, String keyword) {
 
         int start = (int) pageNo * pageSize;
@@ -307,6 +337,8 @@ public class CharityService implements CharityExternalAPI, CharityInternalAPI {
                 .map(id -> (CharityDTO) redisTemplate.opsForValue().get(CHARITY_CACHE_PREFIX + id))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
+
+
         return new PageImpl<>(charities, PageRequest.of(pageNo, pageSize), matchingKeys.size());
     }
 
@@ -319,5 +351,20 @@ public class CharityService implements CharityExternalAPI, CharityInternalAPI {
 
         compositeKey = charity.getOrganizationType().name().toLowerCase() + ":" + charity.getCompanyName() + ":" + charity.getUserId();
         redisZSetTemplate.opsForZSet().add(CHARITY_LIST_CACHE_KEY_ORGANIZATION_TYPE, compositeKey, 0);
+    }
+
+    private UUID getCurrentCharityId() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication != null && authentication.isAuthenticated()) {
+            Object principal = authentication.getPrincipal();
+
+            if (principal instanceof CustomUserDetails) {
+                // Assuming CustomUserDetails holds the User ID
+                return ((CustomUserDetails) principal).getUserId();
+            }
+        }
+
+        throw new RuntimeException("Current charity id is not found");
     }
 }

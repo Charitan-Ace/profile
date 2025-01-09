@@ -24,6 +24,10 @@ spring:
     producer:
       properties:
         max.block.ms: 240000
+        spring:
+          json:
+            trusted:
+              packages: "ace.charitan.*"
   cache:
     type: redis
     redis:

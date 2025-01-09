@@ -5,8 +5,10 @@ import com.charitan.profile.donor.external.dtos.DonorCreationRequest;
 import com.charitan.profile.donor.external.dtos.DonorTransactionDTO;
 import com.charitan.profile.donor.internal.dtos.DonorDTO;
 import com.charitan.profile.donor.internal.dtos.DonorUpdateRequest;
+import com.charitan.profile.jwt.internal.CustomUserDetails;
 import com.charitan.profile.stripe.StripeExternalAPI;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.annotation.security.RolesAllowed;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.domain.*;
@@ -16,6 +18,9 @@ import org.springframework.data.redis.core.Cursor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -138,7 +143,6 @@ public class DonorService implements DonorExternalAPI, DonorInternalAPI {
         redisTemplate.opsForValue().set(DONOR_CACHE_PREFIX + request.getUserId(), new DonorDTO(donor));
     }
 
-    //TODO: get email from auth service
     @Override
     public DonorDTO getInfo(UUID userId) {
 
@@ -162,6 +166,33 @@ public class DonorService implements DonorExternalAPI, DonorInternalAPI {
         return new DonorDTO(donor);
     }
 
+    @Override
+    @PreAuthorize("hasRole('DONOR')")
+    public DonorDTO getMyInfo() {
+
+        UUID userId = getCurrentDonorId();
+        Donor donor = donorRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Donor not found."));
+
+        // Check if data is in cache
+        String cacheKey = DONOR_CACHE_PREFIX + userId;
+        DonorDTO cachedDonor = (DonorDTO) redisTemplate.opsForValue().get(cacheKey);
+
+        if (cachedDonor != null) {
+            System.out.println("Cache");
+            return cachedDonor;
+        }
+
+        System.out.println("DB");
+
+        redisTemplate.opsForValue().set(cacheKey, new DonorDTO(donor));
+
+        addToRedisZSet(donor);
+
+        return new DonorDTO(donor);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
     public Page<DonorDTO> getAll(int pageNo, int pageSize, String order, String filter, String keyword) {
 
         int start = (int) pageNo * pageSize;
@@ -247,7 +278,7 @@ public class DonorService implements DonorExternalAPI, DonorInternalAPI {
             scanCursor.close();
         } while (!new String(cursor, StandardCharsets.UTF_8).equals("0")); // Continue until the cursor returns "0"
 
-        System.out.println(Arrays.toString(matchingKeys.toArray()));
+        System.out.println("Matching keys: " + Arrays.toString(matchingKeys.toArray()));
 
         // Adjust the indices to handle edge cases
         if (start >= matchingKeys.size()) {
@@ -270,13 +301,14 @@ public class DonorService implements DonorExternalAPI, DonorInternalAPI {
             resultKeys = matchingKeys.subList(start, end + 1);
         }
 
-        System.out.println(Arrays.toString(resultKeys.toArray()));
+        System.out.println("Result keys " + Arrays.toString(resultKeys.toArray()));
 
         List<UUID> extractID = new ArrayList<>();
         for (String key : resultKeys) {
             extractID.add(UUID.fromString(key.split(":")[1]));
         }
-        System.out.println(Arrays.toString(extractID.toArray()));
+
+        System.out.println("Extract ID " + Arrays.toString(extractID.toArray()));
 
 
         // Fetch donor details from the cache
@@ -296,5 +328,20 @@ public class DonorService implements DonorExternalAPI, DonorInternalAPI {
         compositeKey = donor.getFirstName().trim().toLowerCase() + ":" + donor.getUserId();
         redisZSetTemplate.opsForZSet().add(DONOR_LIST_CACHE_KEY_FIRST_NAME, compositeKey, 0);
 
+    }
+
+    private UUID getCurrentDonorId() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication != null && authentication.isAuthenticated()) {
+            Object principal = authentication.getPrincipal();
+
+            if (principal instanceof CustomUserDetails) {
+                // Assuming CustomUserDetails holds the User ID
+                return ((CustomUserDetails) principal).getUserId();
+            }
+        }
+
+        throw new RuntimeException("Current charity id is not found");
     }
 }

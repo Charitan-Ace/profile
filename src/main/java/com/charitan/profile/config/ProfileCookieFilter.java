@@ -1,7 +1,7 @@
 package com.charitan.profile.config;
 
 import com.charitan.profile.jwt.external.JwtExternalAPI;
-import io.jsonwebtoken.lang.Collections;
+import com.charitan.profile.jwt.internal.CustomUserDetails;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
@@ -12,13 +12,14 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.UUID;
+import java.util.Collections;
 import java.util.stream.Collectors;
 
 @Component
@@ -62,19 +63,21 @@ public class ProfileCookieFilter extends OncePerRequestFilter {
 
             // Extract details from JWT claims
             String email = claims.get("email", String.class);
-            List<String> roles = claims.get("roles", List.class);
+            UUID id = UUID.fromString(claims.get("id", String.class));
+            String role = claims.get("roleId", String.class);
 
-            // Convert roles to GrantedAuthority
-            List<GrantedAuthority> authorities = roles != null
-                    ? roles.stream().map(SimpleGrantedAuthority::new).collect(Collectors.toList())
-                    : Collections.emptyList();
+            List<GrantedAuthority> authorities;
+            if (role != null) {
+                // Convert the role to a GrantedAuthority
+                authorities = Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role));
+            } else {
+                // Handle case where no role is present (e.g., empty list of authorities)
+                authorities = Collections.emptyList();
+            }
 
             // Create UserDetails from JWT claims
-            UserDetails userDetails = new org.springframework.security.core.userdetails.User(
-                    email,
-                    "", // No password needed for JWT-based auth
-                    authorities
-            );
+            CustomUserDetails userDetails = new CustomUserDetails(id, email, authorities);
+            System.out.println(userDetails.toString());
 
             // Create authentication token and set it in the security context
             UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
