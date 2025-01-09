@@ -1,5 +1,6 @@
 package com.charitan.profile.kafka.consumer;
 
+import ace.charitan.common.dto.auth.AuthCreationDto;
 import com.charitan.profile.charity.external.CharityExternalAPI;
 import com.charitan.profile.charity.external.dtos.CharityCreationRequest;
 import com.charitan.profile.donor.external.DonorExternalAPI;
@@ -7,8 +8,6 @@ import com.charitan.profile.donor.external.dtos.DonorCreationRequest;
 import com.charitan.profile.jwt.external.JwtExternalAPI;
 import com.charitan.profile.kafka.enums.AuthConsumerTopic;
 import com.charitan.profile.kafka.enums.KeyConsumer;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.nimbusds.jose.jwk.JWK;
 import io.jsonwebtoken.security.Jwks;
 import lombok.RequiredArgsConstructor;
 import org.apache.kafka.common.TopicPartition;
@@ -30,20 +29,16 @@ public class KafkaConsumer extends AbstractConsumerSeekAware {
     private final DonorExternalAPI donorExternalAPI;
     private final CharityExternalAPI charityExternalAPI;
     private final JwtExternalAPI jwtExternalAPI;
-    private final ObjectMapper objectMapper;
 
     private static final Logger logger = LoggerFactory.getLogger(KafkaConsumer.class);
 
     @KafkaListener(topics = AuthConsumerTopic.AUTH_CREATION, groupId = "profile")
-    public void handleDonorCreatedEvent(String message) {
+    public void handleDonorCreatedEvent(AuthCreationDto authCreationDto) {
         try {
-            // Parse JSON string to a Map
-            Map<String, Object> authDetails = objectMapper.readValue(message, Map.class);
-
-            UUID id = UUID.fromString(authDetails.get("id").toString()); // Convert String to UUID
-            String email = authDetails.get("email").toString();
-            String roleId = authDetails.get("roleId").toString();
-            Map<String, String> profile = (Map<String, String>) authDetails.get("profile");
+            UUID id = authCreationDto.id(); // Convert String to UUID
+            String email = authCreationDto.email();
+            String roleId = authCreationDto.roleId();
+            Map<String, String> profile = (Map<String, String>) authCreationDto.profile();
 
             if (roleId.equals("DONOR")) {
                 DonorCreationRequest request = new DonorCreationRequest(
