@@ -1,5 +1,6 @@
 package com.charitan.profile.donor.internal;
 
+import com.charitan.profile.donor.internal.dtos.DonorSelfUpdateRequest;
 import com.charitan.profile.donor.internal.dtos.DonorUpdateRequest;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,11 +19,24 @@ public class DonorController {
     private DonorService donorService;
 
     @PatchMapping("/update")
-    public ResponseEntity<String> updateDonor(@RequestBody @Valid DonorUpdateRequest request) {
+    public ResponseEntity<Object> updateDonor(@RequestBody @Valid DonorUpdateRequest request) {
 
         try {
-            donorService.updateDonor(request);
-            return ResponseEntity.status(HttpStatus.OK).body("Donor updated successfully!");
+            return ResponseEntity.status(HttpStatus.OK).body(donorService.updateDonor(request));
+        } catch (ResponseStatusException e) {
+            // If the exception is a ResponseStatusException, return the status and message
+            return ResponseEntity.status(e.getStatusCode()).body(e.getReason());
+        } catch (Exception e) {
+            // Handle other exceptions
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred.");
+        }
+    }
+
+    @PatchMapping("/update/me")
+    public ResponseEntity<Object> updateMyInfo(@RequestBody @Valid DonorSelfUpdateRequest request) {
+
+        try {
+            return ResponseEntity.status(HttpStatus.OK).body(donorService.updateMyInfo(request));
         } catch (ResponseStatusException e) {
             // If the exception is a ResponseStatusException, return the status and message
             return ResponseEntity.status(e.getStatusCode()).body(e.getReason());

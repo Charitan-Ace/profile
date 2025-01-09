@@ -3,6 +3,7 @@ package com.charitan.profile.charity.internal;
 import com.charitan.profile.charity.external.CharityExternalAPI;
 import com.charitan.profile.charity.external.dtos.CharityCreationRequest;
 import com.charitan.profile.charity.internal.dtos.CharityDTO;
+import com.charitan.profile.charity.internal.dtos.CharitySelfUpdateRequest;
 import com.charitan.profile.charity.internal.dtos.CharityUpdateRequest;
 import com.charitan.profile.jwt.internal.CustomUserDetails;
 import com.charitan.profile.stripe.StripeExternalAPI;
@@ -89,7 +90,7 @@ public class CharityService implements CharityExternalAPI, CharityInternalAPI {
     }
 
     @Override
-    public void updateCharity(CharityUpdateRequest request) {
+    public CharityDTO updateCharity(CharityUpdateRequest request) {
 
         Charity charity = charityRepository.findById(request.getUserId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Charity not found."));
@@ -145,7 +146,73 @@ public class CharityService implements CharityExternalAPI, CharityInternalAPI {
         charityRepository.save(charity);
 
         // Update cache for this donor
-        redisTemplate.opsForValue().set(CHARITY_CACHE_PREFIX + request.getUserId(), new CharityDTO(charity));
+        redisTemplate.opsForValue().set(CHARITY_CACHE_PREFIX + charity.getUserId(), new CharityDTO(charity));
+
+        return new CharityDTO(charity);
+    }
+
+    @Override
+    @PreAuthorize("hasRole('CHARITY')")
+    public CharityDTO updateMyInfo(CharitySelfUpdateRequest request) {
+
+        UUID userId = getCurrentCharityId();
+        Charity charity = charityRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Charity not found."));
+
+        if (!Objects.equals(request.getCompanyName(), charity.getCompanyName()) && request.getCompanyName() != null) {
+            String compositeKey = charity.getCompanyName().trim().toLowerCase() + ":" + charity.getUserId();
+            redisZSetTemplate.opsForZSet().remove(CHARITY_LIST_CACHE_KEY_COMPANY_NAME, compositeKey);
+
+            compositeKey = request.getCompanyName().trim().toLowerCase() + ":" + charity.getUserId();
+            redisZSetTemplate.opsForZSet().add(CHARITY_LIST_CACHE_KEY_COMPANY_NAME, compositeKey, 0);
+
+            compositeKey = charity.getOrganizationType().name().toLowerCase()+ ":" + request.getCompanyName().trim().toLowerCase() + ":" + charity.getUserId();
+            redisZSetTemplate.opsForZSet().add(CHARITY_LIST_CACHE_KEY_COMPANY_NAME, compositeKey, 0);
+
+            charity.setCompanyName(request.getCompanyName());
+        }
+        if (!Objects.equals(request.getTaxCode(), charity.getTaxCode()) && request.getTaxCode() != null) {
+
+            if (charityRepository.existsCharityByTaxCode(request.getTaxCode())) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Tax code already been used.");
+            }
+
+            String compositeKey = charity.getTaxCode().trim() + ":" + charity.getUserId();
+            redisZSetTemplate.opsForZSet().remove(CHARITY_LIST_CACHE_KEY_TAX_CODE, compositeKey);
+
+            compositeKey = request.getTaxCode().trim() + ":" + charity.getUserId();
+            redisZSetTemplate.opsForZSet().add(CHARITY_LIST_CACHE_KEY_TAX_CODE, compositeKey, 0);
+
+            charity.setTaxCode(request.getTaxCode());
+        }
+        if (!Objects.equals(request.getOrganizationType().trim().toLowerCase(), charity.getOrganizationType().name().trim().toLowerCase()) && request.getOrganizationType() != null) {
+
+            // Validate and parse organizationType
+            OrganizationType organizationType;
+            try {
+                organizationType = OrganizationType.valueOf(request.getOrganizationType().toUpperCase());
+            } catch (IllegalArgumentException e) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid organization type.");
+            }
+
+            String compositeKey = charity.getOrganizationType().name().toLowerCase() + ":" + charity.getCompanyName().trim().toLowerCase() + ":" + charity.getUserId();
+            redisZSetTemplate.opsForZSet().remove(CHARITY_LIST_CACHE_KEY_TAX_CODE, compositeKey);
+
+            compositeKey = request.getOrganizationType().toLowerCase() + ":" + charity.getCompanyName().trim().toLowerCase() + ":" + charity.getUserId();
+            redisZSetTemplate.opsForZSet().add(CHARITY_LIST_CACHE_KEY_TAX_CODE, compositeKey, 0);
+
+            charity.setOrganizationType(organizationType);
+        }
+        if (request.getAddress() != null) {
+            charity.setAddress(request.getAddress());
+        }
+
+        charityRepository.save(charity);
+
+        // Update cache for this donor
+        redisTemplate.opsForValue().set(CHARITY_CACHE_PREFIX + charity.getUserId(), new CharityDTO(charity));
+
+        return new CharityDTO(charity);
     }
 
     @Override
@@ -153,9 +220,6 @@ public class CharityService implements CharityExternalAPI, CharityInternalAPI {
     public CharityDTO getMyInfo() {
 
         UUID userId = getCurrentCharityId();
-
-        System.out.println(userId);
-
         Charity charity = charityRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Charity not found."));
 
