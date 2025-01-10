@@ -1,16 +1,15 @@
 package com.charitan.profile.donor.internal;
 
-import ace.charitan.common.dto.payment.ProfileStripeIdDto;
 import com.charitan.profile.donor.external.DonorExternalAPI;
 import com.charitan.profile.donor.external.dtos.DonorCreationRequest;
 import com.charitan.profile.donor.external.dtos.DonorTransactionDTO;
+import com.charitan.profile.donor.external.dtos.ExternalDonorDTO;
 import com.charitan.profile.donor.internal.dtos.DonorDTO;
 import com.charitan.profile.donor.internal.dtos.DonorSelfUpdateRequest;
 import com.charitan.profile.donor.internal.dtos.DonorUpdateRequest;
 import com.charitan.profile.jwt.internal.CustomUserDetails;
 import com.charitan.profile.stripe.StripeExternalAPI;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.annotation.security.RolesAllowed;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.domain.*;
@@ -190,30 +189,6 @@ public class DonorService implements DonorExternalAPI, DonorInternalAPI {
     }
 
     @Override
-    public ProfileStripeIdDto getDonorStripeId(UUID userId) {
-
-        Donor donor = donorRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Donor not found."));
-
-        // Check if data is in cache
-        String cacheKey = DONOR_CACHE_PREFIX + userId;
-        DonorDTO cachedDonor = (DonorDTO) redisTemplate.opsForValue().get(cacheKey);
-
-        if (cachedDonor != null) {
-            System.out.println("Cache");
-            return new ProfileStripeIdDto(cachedDonor.getStripeId());
-        }
-
-        System.out.println("DB");
-
-        redisTemplate.opsForValue().set(cacheKey, new DonorDTO(donor));
-
-        addToRedisZSet(donor);
-
-        return new ProfileStripeIdDto(donor.getStripeId());
-    }
-
-    @Override
     public DonorDTO getInfo(UUID userId) {
 
         // Check if data is in cache
@@ -234,6 +209,28 @@ public class DonorService implements DonorExternalAPI, DonorInternalAPI {
         addToRedisZSet(donor);
         
         return new DonorDTO(donor);
+    }
+
+    @Override
+    public ExternalDonorDTO getDonor(UUID userId) {
+        // Check if data is in cache
+        String cacheKey = DONOR_CACHE_PREFIX + userId;
+        DonorDTO cachedDonor = (DonorDTO) redisTemplate.opsForValue().get(cacheKey);
+
+        if (cachedDonor != null) {
+            System.out.println("Cache");
+            return new ExternalDonorDTO(cachedDonor);
+        }
+
+        System.out.println("DB");
+        Donor donor = donorRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Donor not found."));
+
+        redisTemplate.opsForValue().set(cacheKey, new DonorDTO(donor));
+
+        addToRedisZSet(donor);
+
+        return new ExternalDonorDTO(donor);
     }
 
     @Override

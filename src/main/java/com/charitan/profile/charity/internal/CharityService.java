@@ -2,6 +2,7 @@ package com.charitan.profile.charity.internal;
 
 import com.charitan.profile.charity.external.CharityExternalAPI;
 import com.charitan.profile.charity.external.dtos.CharityCreationRequest;
+import com.charitan.profile.charity.external.dtos.ExternalCharityDTO;
 import com.charitan.profile.charity.internal.dtos.CharityDTO;
 import com.charitan.profile.charity.internal.dtos.CharitySelfUpdateRequest;
 import com.charitan.profile.charity.internal.dtos.CharityUpdateRequest;
@@ -255,6 +256,26 @@ public class CharityService implements CharityExternalAPI, CharityInternalAPI {
 
         addToRedisZSet(charity);
         return new CharityDTO(charity);
+    }
+
+    @Override
+    public ExternalCharityDTO getCharity(UUID userId) {
+        // Check if data is in cache
+
+        String cacheKey = CHARITY_CACHE_PREFIX + userId;
+        CharityDTO cachedCharity = (CharityDTO) redisTemplate.opsForValue().get(cacheKey);
+
+        if (cachedCharity != null) {
+            return new ExternalCharityDTO(cachedCharity);
+        }
+
+        Charity charity = charityRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Charity not found."));
+
+        redisTemplate.opsForValue().set(cacheKey, new CharityDTO(charity));
+
+        addToRedisZSet(charity);
+        return new ExternalCharityDTO(charity);
     }
 
     @PreAuthorize("hasRole('ADMIN')")

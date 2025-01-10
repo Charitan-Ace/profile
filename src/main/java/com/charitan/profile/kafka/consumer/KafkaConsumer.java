@@ -1,28 +1,39 @@
 package com.charitan.profile.kafka.consumer;
 
 import ace.charitan.common.dto.auth.AuthCreationDto;
-import ace.charitan.common.dto.payment.ProfileStripeIdDto;
-import ace.charitan.common.dto.payment.StripeIdRequestDto;
+import ace.charitan.common.dto.profile.charity.CharityProfileDto;
+import ace.charitan.common.dto.profile.charity.GetCharityProfileByIdsRequestDto;
+import ace.charitan.common.dto.profile.charity.GetCharityProfileByIdsResponseDto;
+import ace.charitan.common.dto.profile.charity.OrganizationType;
+import ace.charitan.common.dto.profile.donor.DonorProfileDto;
+import ace.charitan.common.dto.profile.donor.GetDonorProfileByIdsRequestDto;
+import ace.charitan.common.dto.profile.donor.GetDonorProfileByIdsResponseDto;
 import com.charitan.profile.charity.external.CharityExternalAPI;
 import com.charitan.profile.charity.external.dtos.CharityCreationRequest;
+import com.charitan.profile.charity.external.dtos.ExternalCharityDTO;
 import com.charitan.profile.donor.external.DonorExternalAPI;
 import com.charitan.profile.donor.external.dtos.DonorCreationRequest;
+import com.charitan.profile.donor.external.dtos.ExternalDonorDTO;
 import com.charitan.profile.jwt.external.JwtExternalAPI;
 import com.charitan.profile.kafka.enums.AuthConsumerTopic;
-import com.charitan.profile.kafka.enums.DonationConsumerTopic;
 import com.charitan.profile.kafka.enums.KeyConsumerTopic;
+import com.charitan.profile.kafka.enums.ProfileConsumerTopic;
 import io.jsonwebtoken.security.Jwks;
 import lombok.RequiredArgsConstructor;
 import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.listener.AbstractConsumerSeekAware;
 import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.stereotype.Component;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.security.Key;
 import java.security.PublicKey;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -100,11 +111,50 @@ public class KafkaConsumer extends AbstractConsumerSeekAware {
         }
     }
 
-    @KafkaListener(topics = DonationConsumerTopic.DONATION_GET_STRIPE_ID, groupId = "profile")
+    @KafkaListener(topics = ProfileConsumerTopic.GET_CHARITIES_PROFILE, groupId = "profile")
     @SendTo
-    public ProfileStripeIdDto sendStripeIdForDonation(StripeIdRequestDto stripeIdRequestDto) {
+    public GetCharityProfileByIdsResponseDto getCharityProfileByIds(GetCharityProfileByIdsRequestDto request) {
         try {
-            return donorExternalAPI.getDonorStripeId(stripeIdRequestDto.id());
+            List<CharityProfileDto> resultList = new ArrayList<>();
+            for(UUID charityId : request.charityIdList()) {
+                ExternalCharityDTO externalCharityDTO = charityExternalAPI.getCharity(charityId);
+                if (externalCharityDTO != null) {
+                    UUID id = externalCharityDTO.getUserId();
+                    String companyName = externalCharityDTO.getCompanyName();
+                    String address = externalCharityDTO.getAddress();
+                    String taxCode = externalCharityDTO.getTaxCode();
+                    OrganizationType organizationType = OrganizationType.valueOf(externalCharityDTO.getOrganizationType().name());
+                    String stripeId = externalCharityDTO.getStripeId();
+                    String assetKey = externalCharityDTO.getAssetsKey();
+                    resultList.add(new CharityProfileDto(id, companyName, address, taxCode, organizationType,
+                            stripeId, assetKey));
+                }
+            }
+            return new GetCharityProfileByIdsResponseDto(resultList);
+        } catch (Exception e) {
+            logger.error("Failed to process get stripe id event", e);
+            throw new RuntimeException("Failed to process get stripe id event: " + e.getMessage());
+        }
+    }
+
+    @KafkaListener(topics = ProfileConsumerTopic.GET_DONORS_PROFILE, groupId = "profile")
+    @SendTo
+    public GetDonorProfileByIdsResponseDto getDonorProfileByIds(GetDonorProfileByIdsRequestDto request) {
+        try {
+            List<DonorProfileDto> resultList = new ArrayList<>();
+            for(UUID donorId : request.donorIdList()) {
+                ExternalDonorDTO externalDonorDTO = donorExternalAPI.getDonor(donorId);
+                if (externalDonorDTO != null) {
+                    UUID id = externalDonorDTO.getUserId();
+                    String firstName = externalDonorDTO.getFirstName();
+                    String lastName = externalDonorDTO.getLastName();
+                    String address = externalDonorDTO.getAddress();
+                    String stripeId = externalDonorDTO.getStripeId();
+                    String assetKey = externalDonorDTO.getAssetsKey();
+                    resultList.add(new DonorProfileDto(id, firstName, lastName, address, stripeId, assetKey));
+                }
+            }
+            return new GetDonorProfileByIdsResponseDto(resultList);
         } catch (Exception e) {
             logger.error("Failed to process get stripe id event", e);
             throw new RuntimeException("Failed to process get stripe id event: " + e.getMessage());
