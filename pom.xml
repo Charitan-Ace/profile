@@ -110,7 +110,7 @@
 		<dependency>
 			<groupId>ace.charitan</groupId>
 			<artifactId>common</artifactId>
-			<version>0.0.17-SNAPSHOT</version>
+			<version>0.0.20-SNAPSHOT</version>
 		</dependency>
 <!--		<dependency>-->
 <!--			<groupId>org.springframework.boot</groupId>-->

@@ -1,5 +1,6 @@
 package com.charitan.profile.donor.internal;
 
+import ace.charitan.common.dto.payment.ProfileStripeIdDto;
 import com.charitan.profile.donor.external.DonorExternalAPI;
 import com.charitan.profile.donor.external.dtos.DonorCreationRequest;
 import com.charitan.profile.donor.external.dtos.DonorTransactionDTO;
@@ -186,6 +187,30 @@ public class DonorService implements DonorExternalAPI, DonorInternalAPI {
         redisTemplate.opsForValue().set(DONOR_CACHE_PREFIX + donor.getUserId(), new DonorDTO(donor));
 
         return new DonorDTO(donor);
+    }
+
+    @Override
+    public ProfileStripeIdDto getDonorStripeId(UUID userId) {
+
+        Donor donor = donorRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Donor not found."));
+
+        // Check if data is in cache
+        String cacheKey = DONOR_CACHE_PREFIX + userId;
+        DonorDTO cachedDonor = (DonorDTO) redisTemplate.opsForValue().get(cacheKey);
+
+        if (cachedDonor != null) {
+            System.out.println("Cache");
+            return new ProfileStripeIdDto(cachedDonor.getStripeId());
+        }
+
+        System.out.println("DB");
+
+        redisTemplate.opsForValue().set(cacheKey, new DonorDTO(donor));
+
+        addToRedisZSet(donor);
+
+        return new ProfileStripeIdDto(donor.getStripeId());
     }
 
     @Override

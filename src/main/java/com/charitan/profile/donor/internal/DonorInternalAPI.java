@@ -1,5 +1,7 @@
 package com.charitan.profile.donor.internal;
 
+import ace.charitan.common.dto.payment.ProfileStripeIdDto;
+import ace.charitan.common.dto.payment.StripeIdRequestDto;
 import com.charitan.profile.donor.internal.dtos.DonorDTO;
 import com.charitan.profile.donor.internal.dtos.DonorSelfUpdateRequest;
 import com.charitan.profile.donor.internal.dtos.DonorUpdateRequest;

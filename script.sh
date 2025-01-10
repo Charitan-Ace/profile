@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Define the container name
-CONTAINER_NAME="profile-garage-1"
+CONTAINER_NAME="profile-garage"
 
 # Retrieve the node ID from the docker container running Garage
 NODE_ID=$(docker exec -i $CONTAINER_NAME /garage status | awk '/==== HEALTHY NODES ====/ {getline; getline; print $1}')

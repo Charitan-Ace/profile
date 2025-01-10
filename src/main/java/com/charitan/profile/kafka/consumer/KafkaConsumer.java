@@ -1,12 +1,15 @@
 package com.charitan.profile.kafka.consumer;
 
 import ace.charitan.common.dto.auth.AuthCreationDto;
+import ace.charitan.common.dto.payment.ProfileStripeIdDto;
+import ace.charitan.common.dto.payment.StripeIdRequestDto;
 import com.charitan.profile.charity.external.CharityExternalAPI;
 import com.charitan.profile.charity.external.dtos.CharityCreationRequest;
 import com.charitan.profile.donor.external.DonorExternalAPI;
 import com.charitan.profile.donor.external.dtos.DonorCreationRequest;
 import com.charitan.profile.jwt.external.JwtExternalAPI;
 import com.charitan.profile.kafka.enums.AuthConsumerTopic;
+import com.charitan.profile.kafka.enums.DonationConsumerTopic;
 import com.charitan.profile.kafka.enums.KeyConsumerTopic;
 import io.jsonwebtoken.security.Jwks;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.listener.AbstractConsumerSeekAware;
+import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.stereotype.Component;
 
 import java.security.Key;
@@ -91,8 +95,19 @@ public class KafkaConsumer extends AbstractConsumerSeekAware {
             }
 
         } catch (Exception e) {
-            logger.error("Failed to process donor created event", e);
-            throw new RuntimeException("Failed to process donor created event: " + e.getMessage());
+            logger.error("Failed to process public key created event", e);
+            throw new RuntimeException("Failed to process public key created event: " + e.getMessage());
+        }
+    }
+
+    @KafkaListener(topics = DonationConsumerTopic.DONATION_GET_STRIPE_ID, groupId = "profile")
+    @SendTo
+    public ProfileStripeIdDto sendStripeIdForDonation(StripeIdRequestDto stripeIdRequestDto) {
+        try {
+            return donorExternalAPI.getDonorStripeId(stripeIdRequestDto.id());
+        } catch (Exception e) {
+            logger.error("Failed to process get stripe id event", e);
+            throw new RuntimeException("Failed to process get stripe id event: " + e.getMessage());
         }
     }
 
