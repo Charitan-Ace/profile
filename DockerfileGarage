@@ -1,0 +1,7 @@
+# Use the official Docker image as the base
+FROM docker:latest
+# Install bash
+RUN apk add --no-cache bash
+# Set bash as the default shell
+SHELL ["/bin/bash", "-c"]
+# Your additional instructions
