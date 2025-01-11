@@ -19,8 +19,11 @@ spring:
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     consumer:
-      group-id: profile
-      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      group-id: "profile-service"
+      value-deserializer: org.springframework.kafka.support.serializer.DelegatingByTopicDeserializer
+      properties:
+        spring.kafka.value.serialization.bytopic.config: "key.+:org.apache.kafka.common.serialization.StringDeserializer"
+        spring.kafka.value.serialization.bytopic.default: org.springframework.kafka.support.serializer.JsonDeserializer
     producer:
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
     properties:
