@@ -412,6 +412,6 @@ public class DonorService implements DonorExternalAPI, DonorInternalAPI {
             }
         }
 
-        throw new RuntimeException("Current charity id is not found");
+        throw new RuntimeException("Current donor id is not found");
     }
 }
