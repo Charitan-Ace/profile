@@ -28,32 +28,27 @@ public class DonorGenerator {
                             "donor0@gmail.com",
                             "Trung",
                             "Le",
-                            "donor0Address"
-                            , "/7e5bcf25-bafd-4dcc-a6ed-46be277ece3f"),
+                            "donor0Address"),
                     new DonorCreationRequest(UUID.fromString("40ccc062-ca27-436b-85de-7f0b0b795b5f"),
                             "donor1@gmail.com",
                             "Nguyen",
                             "Do",
-                            "donor1Address"
-                            , "/40ccc062-ca27-436b-85de-7f0b0b795b5f"),
+                            "donor1Address"),
                     new DonorCreationRequest(UUID.fromString("bf8a567f-75fd-49ba-b684-d748eb9bbe49"),
                             "donor2@gmail.com",
                             "Pavel",
                             "Potemkin",
-                            "donor2Address"
-                            , "/bf8a567f-75fd-49ba-b684-d748eb9bbe49"),
+                            "donor2Address"),
                     new DonorCreationRequest(UUID.fromString("257949d1-dcb3-4443-9992-8d3449149a49"),
                             "donor3@gmail.com",
                             "Saurabh",
                             "Padmakumar",
-                            "donor3Address"
-                            , "/257949d1-dcb3-4443-9992-8d3449149a49"),
+                            "donor3Address"),
                     new DonorCreationRequest(UUID.fromString("9e478b92-4d5f-4e43-a400-7a46d6483aed"),
                             "donor4@gmail.com",
                             "Kien",
                             "Nguyen",
-                            "donor4Address"
-                            , "/9e478b92-4d5f-4e43-a400-7a46d6483aed")
+                            "donor4Address")
             );
 
             for (DonorCreationRequest donor : donors) {
