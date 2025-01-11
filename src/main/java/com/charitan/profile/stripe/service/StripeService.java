@@ -15,7 +15,8 @@ import java.util.Map;
 @Service
 @Transactional
 public class StripeService implements StripeExternalAPI {
-    @Value("${STRIPE_SECRET_KEY}")
+//    @Value("${STRIPE_SECRET_KEY}")
+    @Value("${stripe.secret}")
     private String stripeSecretKey;
 
     @PostConstruct

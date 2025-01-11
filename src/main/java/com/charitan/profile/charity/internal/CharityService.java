@@ -431,7 +431,7 @@ public class CharityService implements CharityExternalAPI, CharityInternalAPI {
         String compositeKey = charity.getCompanyName().trim().toLowerCase() + ":" + charity.getUserId();
         redisZSetTemplate.opsForZSet().add(CHARITY_LIST_CACHE_KEY_COMPANY_NAME, compositeKey, 0);
 
-        compositeKey = charity.getTaxCode().trim() + ":" + charity.getUserId();
+        compositeKey = charity.getTaxCode().trim().toLowerCase() + ":" + charity.getUserId();
         redisZSetTemplate.opsForZSet().add(CHARITY_LIST_CACHE_KEY_TAX_CODE, compositeKey, 0);
 
         compositeKey = charity.getOrganizationType().name().toLowerCase() + ":" + charity.getCompanyName() + ":" + charity.getUserId();
