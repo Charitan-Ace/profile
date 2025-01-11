@@ -8,7 +8,6 @@ spring:
       hibernate:
         format_sql: true
         dialect: org.hibernate.dialect.PostgreSQLDialect
-
   datasource:
     hikari:
       maximum-pool-size: 10
@@ -34,22 +33,18 @@ spring:
     type: redis
     redis:
       time-to-live: 6000000
-
   data:
     redis:
       sentinel:
-        nodes: profile-sentinel-one:26379,profile-sentinel-two:26379,profile-sentinel-three:26379
-#        nodes: 100.88.41.30:10001,100.88.41.30:10002,100.88.41.30:10003
-        master: mymaster
+        nodes: ${SENTINEL_NODES:profile-sentinel-one:26379,profile-sentinel-two:26379,profile-sentinel-three:26379}
+        master: ${SENTINEL_MASTER:mymaster}
       pool:
         max-active: 128
         max-idle: 20
         min-idle: 1
         max-wait-time: 6000000
-
 server:
   port: 0
-
 eureka:
   client:
     serviceUrl:
@@ -60,9 +55,10 @@ logging:
   level:
     org.springframework.security: DEBUG
     org.springframework.redis: DEBUG
-
 springdoc:
   api-docs:
     enabled: true
   swagger-ui:
     enabled: true
+stripe:
+  secret: ${STRIPE_SECRET_KEY}
