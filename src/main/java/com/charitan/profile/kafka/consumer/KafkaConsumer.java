@@ -56,8 +56,7 @@ public class KafkaConsumer extends AbstractConsumerSeekAware {
                         email,
                         profile.get("firstName"),
                         profile.get("lastName"),
-                        profile.get("address"),
-                        profile.get("assetsKey")
+                        profile.get("address")
                 );
 
                 donorExternalAPI.createDonor(request);
