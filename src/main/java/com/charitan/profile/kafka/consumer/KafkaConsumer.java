@@ -1,11 +1,9 @@
 package com.charitan.profile.kafka.consumer;
 
 import ace.charitan.common.dto.auth.AuthCreationDto;
-import ace.charitan.common.dto.profile.charity.CharityProfileDto;
-import ace.charitan.common.dto.profile.charity.GetCharityProfileByIdsRequestDto;
-import ace.charitan.common.dto.profile.charity.GetCharityProfileByIdsResponseDto;
-import ace.charitan.common.dto.profile.charity.OrganizationType;
+import ace.charitan.common.dto.profile.charity.*;
 import ace.charitan.common.dto.profile.donor.DonorProfileDto;
+import ace.charitan.common.dto.profile.donor.DonorsDto;
 import ace.charitan.common.dto.profile.donor.GetDonorProfileByIdsRequestDto;
 import ace.charitan.common.dto.profile.donor.GetDonorProfileByIdsResponseDto;
 import com.charitan.profile.charity.external.CharityExternalAPI;
@@ -32,10 +30,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.security.Key;
 import java.security.PublicKey;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 @RequiredArgsConstructor
 @Component
@@ -115,7 +110,7 @@ public class KafkaConsumer extends AbstractConsumerSeekAware {
     @SendTo
     public GetCharityProfileByIdsResponseDto getCharityProfileByIds(GetCharityProfileByIdsRequestDto request) {
         try {
-            List<CharityProfileDto> resultList = new ArrayList<>();
+            CharitiesDto resultList = new CharitiesDto(Collections.emptyList());
             for(UUID charityId : request.charityIdList()) {
                 ExternalCharityDTO externalCharityDTO = charityExternalAPI.getCharity(charityId);
                 if (externalCharityDTO != null) {
@@ -126,7 +121,7 @@ public class KafkaConsumer extends AbstractConsumerSeekAware {
                     OrganizationType organizationType = OrganizationType.valueOf(externalCharityDTO.getOrganizationType().name());
                     String stripeId = externalCharityDTO.getStripeId();
                     String assetKey = externalCharityDTO.getAssetsKey();
-                    resultList.add(new CharityProfileDto(id, companyName, address, taxCode, organizationType,
+                    resultList.charityProfilesList().add(new CharityProfileDto(id, companyName, address, taxCode, organizationType,
                             stripeId, assetKey));
                 }
             }
@@ -141,7 +136,7 @@ public class KafkaConsumer extends AbstractConsumerSeekAware {
     @SendTo
     public GetDonorProfileByIdsResponseDto getDonorProfileByIds(GetDonorProfileByIdsRequestDto request) {
         try {
-            List<DonorProfileDto> resultList = new ArrayList<>();
+            DonorsDto resultList = new DonorsDto(Collections.emptyList());
             for(UUID donorId : request.donorIdList()) {
                 ExternalDonorDTO externalDonorDTO = donorExternalAPI.getDonor(donorId);
                 if (externalDonorDTO != null) {
@@ -151,7 +146,7 @@ public class KafkaConsumer extends AbstractConsumerSeekAware {
                     String address = externalDonorDTO.getAddress();
                     String stripeId = externalDonorDTO.getStripeId();
                     String assetKey = externalDonorDTO.getAssetsKey();
-                    resultList.add(new DonorProfileDto(id, firstName, lastName, address, stripeId, assetKey));
+                    resultList.donorProfilesList().add(new DonorProfileDto(id, firstName, lastName, address, stripeId, assetKey));
                 }
             }
             return new GetDonorProfileByIdsResponseDto(resultList);

@@ -322,7 +322,7 @@ public class CharityService implements CharityExternalAPI, CharityInternalAPI {
                             ? charityRepository.findByTaxCodeContainingIgnoreCase(keyword, PageRequest.of(pageNo, pageSize, Sort.by("companyName").ascending()))
                             : charityRepository.findByTaxCodeContainingIgnoreCase(keyword, PageRequest.of(pageNo, pageSize, Sort.by("companyName").descending()));
                 } else {
-                    charityPage = charityRepository.findByOrganizationType(OrganizationType.valueOf(filter), PageRequest.of(pageNo, pageSize, Sort.by("companyName").ascending()));
+                    charityPage = charityRepository.findByOrganizationType(OrganizationType.valueOf(filter.toUpperCase()), PageRequest.of(pageNo, pageSize, Sort.by("companyName").ascending()));
                 }
             }
 
@@ -347,13 +347,13 @@ public class CharityService implements CharityExternalAPI, CharityInternalAPI {
         ScanOptions options;
         if (!cacheKey.equalsIgnoreCase(CHARITY_LIST_CACHE_KEY_ORGANIZATION_TYPE)) {
             options = ScanOptions.scanOptions()
-                    .match("*" + keyword + "*:*") // Match elements containing the pattern
+                    .match("*" + keyword.toLowerCase() + "*:*") // Match elements containing the pattern
                     .count(10) // Scan in batches of 'batchSize'
                     .build();
         } else {
             System.out.println("Filter options");
             options = ScanOptions.scanOptions()
-                    .match("*" + filter + "*:*") // Match elements containing the pattern
+                    .match("*" + filter.toLowerCase() + "*:*") // Match elements containing the pattern
                     .count(10) // Scan in batches of 'batchSize'
                     .build();
         }

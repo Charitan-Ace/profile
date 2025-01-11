@@ -75,7 +75,9 @@ public class DonorService implements DonorExternalAPI, DonorInternalAPI {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to create user in Stripe: " + e.getMessage());
         }
 
-        Donor donor = new Donor(request.getUserId(), request.getLastName(), request.getFirstName(), request.getAddress(), stripeId, request.getAssetsKey());
+        String assetKey = "/" + request.getUserId();
+
+        Donor donor = new Donor(request.getUserId(), request.getLastName(), request.getFirstName(), request.getAddress(), stripeId, assetKey);
 
         donorRepository.save(donor);
 
