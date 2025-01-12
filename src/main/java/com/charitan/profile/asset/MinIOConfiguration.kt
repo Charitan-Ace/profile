@@ -6,7 +6,7 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 
 @Configuration
-open class MinIOConfiguration(
+class MinIOConfiguration(
     @Value("\${s3.endpoint}")
     val endpoint: String,
     @Value("\${s3.key.access}")
@@ -15,7 +15,7 @@ open class MinIOConfiguration(
     val secret: String,
 ) {
     @Bean
-    open fun minioClient(): MinioClient =
+    fun minioClient(): MinioClient =
         MinioClient
             .builder()
             .endpoint(endpoint)
