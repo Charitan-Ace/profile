@@ -43,7 +43,7 @@ spring:
     redis:
       sentinel:
         nodes: ${SENTINEL_NODES:profile-sentinel-one:26379,profile-sentinel-two:26379,profile-sentinel-three:26379}
-        master: ${SENTINEL_MASTER:mymaster}
+        master: ${SENTINEL_MASTER:profile-master}
       pool:
         max-active: 128
         max-idle: 20
@@ -68,3 +68,8 @@ springdoc:
     enabled: true
 stripe:
   secret: ${STRIPE_SECRET_KEY}
+s3:
+  endpoint: ${S3_ENDPOINT:http://minio:9000}
+  key:
+    access: ${S3_KEY_ACCESS:profile-access-key}
+    secret: ${S3_KEY_SECRET:profile-secret-key}

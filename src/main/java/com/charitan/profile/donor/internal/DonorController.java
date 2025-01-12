@@ -16,13 +16,13 @@ import java.util.UUID;
 @RequestMapping("api/profile/donor")
 public class DonorController {
     @Autowired
-    private DonorService donorService;
+    private DonorInternalAPI donorInternalAPI;
 
     @PatchMapping("/update")
     public ResponseEntity<Object> updateDonor(@RequestBody @Valid DonorUpdateRequest request) {
 
         try {
-            return ResponseEntity.status(HttpStatus.OK).body(donorService.updateDonor(request));
+            return ResponseEntity.status(HttpStatus.OK).body(donorInternalAPI.updateDonor(request));
         } catch (ResponseStatusException e) {
             // If the exception is a ResponseStatusException, return the status and message
             return ResponseEntity.status(e.getStatusCode()).body(e.getReason());
@@ -36,7 +36,7 @@ public class DonorController {
     public ResponseEntity<Object> updateMyInfo(@RequestBody @Valid DonorSelfUpdateRequest request) {
 
         try {
-            return ResponseEntity.status(HttpStatus.OK).body(donorService.updateMyInfo(request));
+            return ResponseEntity.status(HttpStatus.OK).body(donorInternalAPI.updateMyInfo(request));
         } catch (ResponseStatusException e) {
             // If the exception is a ResponseStatusException, return the status and message
             return ResponseEntity.status(e.getStatusCode()).body(e.getReason());
@@ -50,7 +50,7 @@ public class DonorController {
     public ResponseEntity<Object> getInfo(@RequestParam("id") UUID userId) {
 
         try {
-            return ResponseEntity.status(HttpStatus.OK).body(donorService.getInfo(userId));
+            return ResponseEntity.status(HttpStatus.OK).body(donorInternalAPI.getInfo(userId));
         } catch (ResponseStatusException e) {
             // If the exception is a ResponseStatusException, return the status and message
             return ResponseEntity.status(e.getStatusCode()).body(e.getReason());
@@ -68,7 +68,7 @@ public class DonorController {
             @RequestParam(value = "filter", defaultValue = "lastName", required = false) String filter,
             @RequestParam(value = "keyword", defaultValue = "", required = false) String keyword) {
         try {
-            return ResponseEntity.status(HttpStatus.OK).body(donorService.getAll(pageNo, pageSize, order, filter, keyword));
+            return ResponseEntity.status(HttpStatus.OK).body(donorInternalAPI.getAll(pageNo, pageSize, order, filter, keyword));
         } catch (ResponseStatusException e) {
             // If the exception is a ResponseStatusException, return the status and message
             return ResponseEntity.status(e.getStatusCode()).body(e.getReason());
@@ -81,7 +81,7 @@ public class DonorController {
     @GetMapping("/myInfo")
     ResponseEntity<Object> getMyInfo() {
         try {
-            return ResponseEntity.status(HttpStatus.OK).body(donorService.getMyInfo());
+            return ResponseEntity.status(HttpStatus.OK).body(donorInternalAPI.getMyInfo());
         } catch (ResponseStatusException e) {
             // If the exception is a ResponseStatusException, return the status and message
             return ResponseEntity.status(e.getStatusCode()).body(e.getReason());
