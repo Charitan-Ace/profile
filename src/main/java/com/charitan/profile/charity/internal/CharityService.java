@@ -2,6 +2,7 @@ package com.charitan.profile.charity.internal;
 
 import com.charitan.profile.charity.external.CharityExternalAPI;
 import com.charitan.profile.charity.external.dtos.CharityCreationRequest;
+import com.charitan.profile.charity.external.dtos.ExternalCharityDTO;
 import com.charitan.profile.charity.internal.dtos.CharityDTO;
 import com.charitan.profile.charity.internal.dtos.CharitySelfUpdateRequest;
 import com.charitan.profile.charity.internal.dtos.CharityUpdateRequest;
@@ -257,6 +258,26 @@ public class CharityService implements CharityExternalAPI, CharityInternalAPI {
         return new CharityDTO(charity);
     }
 
+    @Override
+    public ExternalCharityDTO getCharity(UUID userId) {
+        // Check if data is in cache
+
+        String cacheKey = CHARITY_CACHE_PREFIX + userId;
+        CharityDTO cachedCharity = (CharityDTO) redisTemplate.opsForValue().get(cacheKey);
+
+        if (cachedCharity != null) {
+            return new ExternalCharityDTO(cachedCharity);
+        }
+
+        Charity charity = charityRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Charity not found."));
+
+        redisTemplate.opsForValue().set(cacheKey, new CharityDTO(charity));
+
+        addToRedisZSet(charity);
+        return new ExternalCharityDTO(charity);
+    }
+
     @PreAuthorize("hasRole('ADMIN')")
     public Page<CharityDTO> getAll(int pageNo, int pageSize, String order, String filter, String keyword) {
 
@@ -301,7 +322,7 @@ public class CharityService implements CharityExternalAPI, CharityInternalAPI {
                             ? charityRepository.findByTaxCodeContainingIgnoreCase(keyword, PageRequest.of(pageNo, pageSize, Sort.by("companyName").ascending()))
                             : charityRepository.findByTaxCodeContainingIgnoreCase(keyword, PageRequest.of(pageNo, pageSize, Sort.by("companyName").descending()));
                 } else {
-                    charityPage = charityRepository.findByOrganizationType(OrganizationType.valueOf(filter), PageRequest.of(pageNo, pageSize, Sort.by("companyName").ascending()));
+                    charityPage = charityRepository.findByOrganizationType(OrganizationType.valueOf(filter.toUpperCase()), PageRequest.of(pageNo, pageSize, Sort.by("companyName").ascending()));
                 }
             }
 
@@ -326,13 +347,13 @@ public class CharityService implements CharityExternalAPI, CharityInternalAPI {
         ScanOptions options;
         if (!cacheKey.equalsIgnoreCase(CHARITY_LIST_CACHE_KEY_ORGANIZATION_TYPE)) {
             options = ScanOptions.scanOptions()
-                    .match("*" + keyword + "*:*") // Match elements containing the pattern
+                    .match("*" + keyword.toLowerCase() + "*:*") // Match elements containing the pattern
                     .count(10) // Scan in batches of 'batchSize'
                     .build();
         } else {
             System.out.println("Filter options");
             options = ScanOptions.scanOptions()
-                    .match("*" + filter + "*:*") // Match elements containing the pattern
+                    .match("*" + filter.toLowerCase() + "*:*") // Match elements containing the pattern
                     .count(10) // Scan in batches of 'batchSize'
                     .build();
         }
@@ -410,7 +431,7 @@ public class CharityService implements CharityExternalAPI, CharityInternalAPI {
         String compositeKey = charity.getCompanyName().trim().toLowerCase() + ":" + charity.getUserId();
         redisZSetTemplate.opsForZSet().add(CHARITY_LIST_CACHE_KEY_COMPANY_NAME, compositeKey, 0);
 
-        compositeKey = charity.getTaxCode().trim() + ":" + charity.getUserId();
+        compositeKey = charity.getTaxCode().trim().toLowerCase() + ":" + charity.getUserId();
         redisZSetTemplate.opsForZSet().add(CHARITY_LIST_CACHE_KEY_TAX_CODE, compositeKey, 0);
 
         compositeKey = charity.getOrganizationType().name().toLowerCase() + ":" + charity.getCompanyName() + ":" + charity.getUserId();

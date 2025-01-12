@@ -23,6 +23,4 @@ public class DonorCreationRequest {
     private String lastName;
 
     private String address;
-
-    private String assetsKey;
 }
