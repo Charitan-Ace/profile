@@ -8,6 +8,9 @@ spring:
       hibernate:
         format_sql: true
         dialect: org.hibernate.dialect.PostgreSQLDialect
+  sql:
+    init:
+      mode: always
   datasource:
     hikari:
       maximum-pool-size: 10
