@@ -79,7 +79,10 @@ public class KafkaConsumer extends AbstractConsumerSeekAware {
         }
     }
 
-    @KafkaListener(topics = KeyConsumerTopic.PUBLIC_KEY_CHANGE, groupId = "profile")
+    @KafkaListener(
+            topics = KeyConsumerTopic.PUBLIC_KEY_CHANGE,
+            groupId = "profile-" + "#{T(java.util.UUID).randomUUID()}"
+    )
     public void handlePublicKeyChange(String message) {
         try {
 
