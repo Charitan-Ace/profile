@@ -1,35 +1,26 @@
 package com.charitan.profile.asset
 
-import io.minio.GetPresignedObjectUrlArgs
-import io.minio.MinioClient
-import io.minio.http.Method
+import jakarta.annotation.security.RolesAllowed
 import jakarta.servlet.http.HttpServletRequest
 import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Controller
-import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
-import java.util.concurrent.TimeUnit
 
 @RequestMapping("/api/profile/asset")
 @Controller
 class AssetController(
-    private val minioClient: MinioClient,
+    private val assetService: AssetService,
 ) {
-    @GetMapping("/upload/{name}")
-    fun getUploadUrl(
+    @RolesAllowed("DONOR", "CHARITY")
+    @PostMapping("/upload")
+    fun getUploadSignedUrl(
         request: HttpServletRequest,
-        @PathVariable name: String,
+        @RequestBody fileName: String,
     ): ResponseEntity<String> =
         ResponseEntity.ok(
-            minioClient.getPresignedObjectUrl(
-                GetPresignedObjectUrlArgs
-                    .builder()
-                    .method(Method.PUT)
-                    .bucket("charitan-bucket")
-                    .`object`(name)
-                    .expiry(2, TimeUnit.HOURS)
-                    .build(),
-            ),
+            // add random number to invalidates cache (if exists)
+            assetService.signedUploadUrl("${request.userPrincipal}/${(100000000..999999999).random()}-$fileName"),
         )
 }
