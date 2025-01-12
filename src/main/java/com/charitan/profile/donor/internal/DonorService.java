@@ -75,9 +75,7 @@ public class DonorService implements DonorExternalAPI, DonorInternalAPI {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to create user in Stripe: " + e.getMessage());
         }
 
-        String assetKey = "/" + request.getUserId();
-
-        Donor donor = new Donor(request.getUserId(), request.getLastName(), request.getFirstName(), request.getAddress(), stripeId, assetKey);
+        Donor donor = new Donor(request.getUserId(), request.getLastName(), request.getFirstName(), request.getAddress(), stripeId, null);
 
         donorRepository.save(donor);
 
@@ -180,6 +178,10 @@ public class DonorService implements DonorExternalAPI, DonorInternalAPI {
         }
         if (!Objects.equals(request.getAddress(), donor.getAddress()) && request.getAddress() != null) {
             donor.setAddress(request.getAddress());
+        }
+
+        if (request.getAvatar() != null) {
+            donor.setAssetsKey(request.getAvatar());
         }
 
         donorRepository.save(donor);

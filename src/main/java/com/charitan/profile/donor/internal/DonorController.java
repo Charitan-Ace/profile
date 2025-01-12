@@ -15,8 +15,11 @@ import java.util.UUID;
 @Controller
 @RequestMapping("api/profile/donor")
 public class DonorController {
-    @Autowired
-    private DonorInternalAPI donorInternalAPI;
+    final private DonorInternalAPI donorInternalAPI;
+
+    DonorController(DonorInternalAPI donorInternalAPI) {
+        this.donorInternalAPI = donorInternalAPI;
+    }
 
     @PatchMapping("/update")
     public ResponseEntity<Object> updateDonor(@RequestBody @Valid DonorUpdateRequest request) {

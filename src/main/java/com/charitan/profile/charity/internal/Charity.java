@@ -15,7 +15,6 @@ import java.util.UUID;
 @Getter
 @Setter
 public class Charity {
-
     @Id
     @Column(name="user_id")
     private UUID userId;
@@ -38,4 +37,7 @@ public class Charity {
 
     @Column(name="assets_key")
     private String assetsKey;
+
+    @Column
+    private String video;
 }

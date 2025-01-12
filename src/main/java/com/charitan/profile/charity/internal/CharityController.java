@@ -17,9 +17,11 @@ import java.util.UUID;
 @Validated
 @RequestMapping("api/profile/charity")
 public class CharityController {
+    final private CharityInternalAPI charityInternalAPI;
 
-    @Autowired
-    private CharityInternalAPI charityInternalAPI;
+    CharityController(CharityInternalAPI charityInternalAPI) {
+        this.charityInternalAPI = charityInternalAPI;
+    }
 
     @PatchMapping("/update")
     public ResponseEntity<Object> updateDonor(@RequestBody @Valid CharityUpdateRequest request) {

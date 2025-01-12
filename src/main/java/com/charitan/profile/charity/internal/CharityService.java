@@ -80,7 +80,7 @@ public class CharityService implements CharityExternalAPI, CharityInternalAPI {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to create user in Stripe: " + e.getMessage());
         }
 
-        Charity charity = new Charity(request.getUserId(), request.getCompanyName(), request.getAddress(), request.getTaxCode(), organizationType, stripeId, request.getAssetsKey());
+        Charity charity = new Charity(request.getUserId(), request.getCompanyName(), request.getAddress(), request.getTaxCode(), organizationType, stripeId, null, null);
 
         charityRepository.save(charity);
 
@@ -206,6 +206,14 @@ public class CharityService implements CharityExternalAPI, CharityInternalAPI {
         }
         if (request.getAddress() != null) {
             charity.setAddress(request.getAddress());
+        }
+
+        if (request.getAvatar() != null) {
+            charity.setAssetsKey(request.getAvatar());
+        }
+
+        if (request.getVideo() != null) {
+            charity.setVideo(request.getVideo());
         }
 
         charityRepository.save(charity);

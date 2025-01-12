@@ -11,4 +11,8 @@ public class CharitySelfUpdateRequest {
     private String taxCode;
 
     private String organizationType;
+
+    private String avatar;
+
+    private String video;
 }
