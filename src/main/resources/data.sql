@@ -125,7 +125,7 @@ VALUES(
       ('da362c75-03cd-4e83-b8a9-36d8c3342ecf', 'Hao', 'Nguyen', 'Nam Dinh', 'cus_RZSbKUCh9BdeDc', '/da362c75-03cd-4e83-b8a9-36d8c3342ecf'),
       ('4c312bc7-d25e-46cb-b193-7e81bfe20c9a', 'Chi', 'Tran', 'Thanh Hoa', 'cus_RZSb8saqn1FWVk', '/4c312bc7-d25e-46cb-b193-7e81bfe20c9a'),
       ('ac3126c9-4f96-44db-a9fb-97e7b32b6d8e', 'Thu', 'Hoang', 'Nghe An', 'cus_RZSbrttrpM4hrz', '/ac3126c9-4f96-44db-a9fb-97e7b32b6d8e'),
-      ('663be12d-79b8-4c73-9b8f-5bb2b9e24618', 'Mau', 'Bach', 'Vung Tau', 'cus_RZQzdz0miqEGt4', '/663be12d-79b8-4c73-9b8f-5bb2b9e24618'),
+      ('663be12d-79b8-4c73-9b8f-5bb2b9e24618', 'Mau', 'Bach', 'Vung Tau', 'cus_RZQzdz0miqEGt4', '/663be12d-79b8-4c73-9b8f-5bb2b9e24618')
     ON
     CONFLICT DO NOTHING;
 
