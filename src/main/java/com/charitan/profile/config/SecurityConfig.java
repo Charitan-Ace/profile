@@ -17,12 +17,17 @@ import org.springframework.web.cors.CorsConfiguration;
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
-@RequiredArgsConstructor
 @Order(SecurityProperties.BASIC_AUTH_ORDER)
 public class SecurityConfig {
     private final String[] PUBLIC_ENDPOINT = { "/donor/getAll",
            "/api-docs", "/v3/api-docs", "/api-docs.yaml", "/swagger-ui/**"};
+
     private final ProfileCookieFilter profileCookieFilter;
+
+    SecurityConfig(ProfileCookieFilter profileCookieFilter) {
+        this.profileCookieFilter = profileCookieFilter;
+    }
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity httpSecurity) throws Exception {
         httpSecurity
@@ -30,10 +35,6 @@ public class SecurityConfig {
                 .authorizeHttpRequests((requests) -> requests
                         .anyRequest().permitAll()
                 )
-//                .cors(Customizer.withDefaults())
-//                .authorizeHttpRequests(auth -> auth
-//                        .anyRequest().authenticated()) // Secure all other endpoints
-//                .csrf(AbstractHttpConfigurer::disable) // Disable CSRF if not needed
                 .addFilterBefore(profileCookieFilter, UsernamePasswordAuthenticationFilter.class); // Add custom filter
 
         return httpSecurity.build();

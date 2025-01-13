@@ -2,14 +2,15 @@ package com.charitan.profile.config;
 
 import com.charitan.profile.jwt.external.JwtExternalAPI;
 import com.charitan.profile.jwt.internal.CustomUserDetails;
+import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.AllArgsConstructor;
+import org.jetbrains.annotations.NotNull;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
@@ -17,97 +18,67 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
-import java.util.Collections;
-import java.util.stream.Collectors;
 
 @Component
-@AllArgsConstructor
 public class ProfileCookieFilter extends OncePerRequestFilter {
-
+    private final String cookieName;
     private final JwtExternalAPI jwtExternalAPI;
 
-    @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+    ProfileCookieFilter(
+            @Value("${auth.cookie.name:charitan}")
+            String cookieName, JwtExternalAPI jwtExternalAPI) {
+        this.cookieName = cookieName;
+        this.jwtExternalAPI = jwtExternalAPI;
+    }
 
-        // Skip filter if already authenticated
+    @Override
+    protected void doFilterInternal(@NotNull HttpServletRequest request, @NotNull HttpServletResponse response, @NotNull FilterChain filterChain) throws ServletException, IOException {
         if (SecurityContextHolder.getContext().getAuthentication() != null &&
                 SecurityContextHolder.getContext().getAuthentication().isAuthenticated()) {
             filterChain.doFilter(request, response);
             return;
         }
+        String path = request.getRequestURI();
+        logger.info(path);
 
-        // Find the authentication cookie
+        Cookie[] cookies = request.getCookies();
+        System.out.println("Cookies: " + Arrays.toString(cookies));
+        if (cookies == null) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         Cookie authCookie = null;
-        if (request.getCookies() != null) {
-            for (Cookie cookie : request.getCookies()) {
-                if (cookie.getName().equals("charitan")) {
-                    authCookie = cookie;
-                    break;
-                }
+        for (Cookie cookie : cookies) {
+            if (cookieName.equals(cookie.getName())) {
+                authCookie = cookie;
+                break;
             }
         }
 
-        // If no auth cookie is present, continue the filter chain
         if (authCookie == null) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        System.out.println(authCookie.getValue());
+        Claims claims = jwtExternalAPI.parseJwsPayload(authCookie.getValue());
+        String id = claims.get("id", String.class);
+        String roleId = claims.get("roleId", String.class);
+        String email = claims.get("email", String.class);
 
-        try {
-            // Parse claims from the JWT
-            var claims = jwtExternalAPI.parseJwsPayload(authCookie.getValue());
+        var details = new CustomUserDetails(UUID.fromString(id), email, List.of(new SimpleGrantedAuthority(roleId)));
 
-            // Extract details from JWT claims
-            String email = claims.get("email", String.class);
-            UUID id = UUID.fromString(claims.get("id", String.class));
-            String role = claims.get("roleId", String.class);
+        UsernamePasswordAuthenticationToken token =
+                new UsernamePasswordAuthenticationToken(details, null, details.getAuthorities());
+        token.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
-            List<GrantedAuthority> authorities;
-            if (role != null) {
-                // Convert the role to a GrantedAuthority
-                authorities = Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role));
-            } else {
-                // Handle case where no role is present (e.g., empty list of authorities)
-                authorities = Collections.emptyList();
-            }
+        SecurityContextHolder.getContext().setAuthentication(token);
 
-            // Create UserDetails from JWT claims
-            CustomUserDetails userDetails = new CustomUserDetails(id, email, authorities);
-            System.out.println(userDetails.toString());
+        logger.info("Authenticated as " + details.getUsername());
 
-            // Create authentication token and set it in the security context
-            UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                    userDetails,
-                    null,
-                    authorities
-            );
-            authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-
-            SecurityContextHolder.getContext().setAuthentication(authToken);
-
-            logger.info("Authenticated as " + email);
-
-        } catch (Exception e) {
-            logger.error("Failed to authenticate using JWT: " + e.getMessage());
-        }
-
-        // Continue the filter chain
         filterChain.doFilter(request, response);
-    }
-
-    private String getJwtFromCookies(HttpServletRequest request) {
-        Cookie[] cookies = request.getCookies();
-        if (cookies != null) {
-            for (Cookie cookie : cookies) {
-                if (cookie.getName().equalsIgnoreCase("charitan")) {
-                    return cookie.getValue();
-                }
-            }
-        }
-        return null;
     }
 }
