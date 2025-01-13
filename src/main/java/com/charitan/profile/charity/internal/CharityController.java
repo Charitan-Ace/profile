@@ -1,12 +1,13 @@
 package com.charitan.profile.charity.internal;
 
-import com.charitan.profile.charity.internal.dtos.CharityDTO;
 import com.charitan.profile.charity.internal.dtos.CharitySelfUpdateRequest;
 import com.charitan.profile.charity.internal.dtos.CharityUpdateRequest;
+import com.charitan.profile.jwt.internal.CustomUserDetails;
+import jakarta.annotation.security.RolesAllowed;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -83,16 +84,13 @@ public class CharityController {
         }
     }
 
-    @GetMapping("/myInfo")
-    ResponseEntity<Object> getMyInfo() {
-        try {
-            return ResponseEntity.status(HttpStatus.OK).body(charityInternalAPI.getMyInfo());
-        } catch (ResponseStatusException e) {
-            // If the exception is a ResponseStatusException, return the status and message
-            return ResponseEntity.status(e.getStatusCode()).body(e.getReason());
-        } catch (Exception e) {
-            // Handle other exceptions
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred.");
-        }
+    @RolesAllowed({"CHARITY"})
+    @GetMapping("/me")
+    ResponseEntity<Object> getMyInfo(
+            @AuthenticationPrincipal CustomUserDetails userDetails
+            ) {
+        var info = charityInternalAPI.getInfo(userDetails.getUserId());
+
+        return ResponseEntity.ok(info);
     }
 }

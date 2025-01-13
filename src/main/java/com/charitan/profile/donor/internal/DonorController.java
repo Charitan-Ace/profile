@@ -2,10 +2,12 @@ package com.charitan.profile.donor.internal;
 
 import com.charitan.profile.donor.internal.dtos.DonorSelfUpdateRequest;
 import com.charitan.profile.donor.internal.dtos.DonorUpdateRequest;
+import com.charitan.profile.jwt.internal.CustomUserDetails;
+import jakarta.annotation.security.RolesAllowed;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -81,16 +83,12 @@ public class DonorController {
         }
     }
 
-    @GetMapping("/myInfo")
-    ResponseEntity<Object> getMyInfo() {
-        try {
-            return ResponseEntity.status(HttpStatus.OK).body(donorInternalAPI.getMyInfo());
-        } catch (ResponseStatusException e) {
-            // If the exception is a ResponseStatusException, return the status and message
-            return ResponseEntity.status(e.getStatusCode()).body(e.getReason());
-        } catch (Exception e) {
-            // Handle other exceptions
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred.");
-        }
+    @RolesAllowed({"DONOR"})
+    @GetMapping("/me")
+    ResponseEntity<Object> getMyInfo(
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        var info = donorInternalAPI.getInfo(userDetails.getUserId());
+        return ResponseEntity.ok(info);
     }
 }
