@@ -12,5 +12,5 @@ public interface DonorInternalAPI {
     public DonorDTO getInfo(UUID userId);
     public Page<DonorDTO> getAll(int pageNo, int pageSize, String order, String filter, String keyword);
     public DonorDTO getMyInfo();
-    public DonorDTO updateMyInfo(DonorSelfUpdateRequest request);
+    public DonorDTO updateMyInfo(DonorSelfUpdateRequest request, UUID userId);
 }

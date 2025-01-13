@@ -37,18 +37,12 @@ public class DonorController {
         }
     }
 
+    @RolesAllowed({"DONOR"})
     @PatchMapping("/update/me")
-    public ResponseEntity<Object> updateMyInfo(@RequestBody @Valid DonorSelfUpdateRequest request) {
+    public ResponseEntity<Object> updateMyInfo(@RequestBody @Valid DonorSelfUpdateRequest request, @AuthenticationPrincipal CustomUserDetails userDetails) {
+        var response = donorInternalAPI.updateMyInfo(request, userDetails.getUserId());
 
-        try {
-            return ResponseEntity.status(HttpStatus.OK).body(donorInternalAPI.updateMyInfo(request));
-        } catch (ResponseStatusException e) {
-            // If the exception is a ResponseStatusException, return the status and message
-            return ResponseEntity.status(e.getStatusCode()).body(e.getReason());
-        } catch (Exception e) {
-            // Handle other exceptions
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred.");
-        }
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/info")
@@ -89,6 +83,7 @@ public class DonorController {
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
         var info = donorInternalAPI.getInfo(userDetails.getUserId());
+        System.out.println(userDetails.getUserId());
         return ResponseEntity.ok(info);
     }
 }

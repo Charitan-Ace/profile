@@ -153,10 +153,8 @@ public class CharityService implements CharityExternalAPI, CharityInternalAPI {
     }
 
     @Override
-    @PreAuthorize("hasRole('CHARITY')")
-    public CharityDTO updateMyInfo(CharitySelfUpdateRequest request) {
+    public CharityDTO updateMyInfo(CharitySelfUpdateRequest request, UUID userId) {
 
-        UUID userId = getCurrentCharityId();
         Charity charity = charityRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Charity not found."));
 
@@ -225,7 +223,6 @@ public class CharityService implements CharityExternalAPI, CharityInternalAPI {
     }
 
     @Override
-    @PreAuthorize("hasRole('CHARITY')")
     public CharityDTO getMyInfo() {
 
         UUID userId = getCurrentCharityId();
@@ -286,7 +283,6 @@ public class CharityService implements CharityExternalAPI, CharityInternalAPI {
         return new ExternalCharityDTO(charity);
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
     public Page<CharityDTO> getAll(int pageNo, int pageSize, String order, String filter, String keyword) {
 
         int start = (int) pageNo * pageSize;

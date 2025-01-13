@@ -147,10 +147,7 @@ public class DonorService implements DonorExternalAPI, DonorInternalAPI {
     }
 
     @Override
-    @PreAuthorize("hasRole('DONOR')")
-    public DonorDTO updateMyInfo(DonorSelfUpdateRequest request) {
-
-        UUID userId = getCurrentDonorId();
+    public DonorDTO updateMyInfo(DonorSelfUpdateRequest request, UUID userId) {
         Donor donor = donorRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Donor not found."));
 
@@ -238,7 +235,6 @@ public class DonorService implements DonorExternalAPI, DonorInternalAPI {
     }
 
     @Override
-    @PreAuthorize("hasRole('DONOR')")
     public DonorDTO getMyInfo() {
 
         UUID userId = getCurrentDonorId();
@@ -263,7 +259,6 @@ public class DonorService implements DonorExternalAPI, DonorInternalAPI {
         return new DonorDTO(donor);
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
     public Page<DonorDTO> getAll(int pageNo, int pageSize, String order, String filter, String keyword) {
 
         int start = (int) pageNo * pageSize;

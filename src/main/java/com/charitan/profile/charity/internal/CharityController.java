@@ -38,18 +38,12 @@ public class CharityController {
         }
     }
 
+    @RolesAllowed({"CHARITY"})
     @PatchMapping("/update/me")
-    public ResponseEntity<Object> updateMyInfo(@RequestBody @Valid CharitySelfUpdateRequest request) {
+    public ResponseEntity<Object> updateMyInfo(@RequestBody @Valid CharitySelfUpdateRequest request, @AuthenticationPrincipal CustomUserDetails userDetails) {
+        var response = charityInternalAPI.updateMyInfo(request, userDetails.getUserId());
 
-        try {
-            return ResponseEntity.status(HttpStatus.OK).body(charityInternalAPI.updateMyInfo(request));
-        } catch (ResponseStatusException e) {
-            // If the exception is a ResponseStatusException, return the status and message
-            return ResponseEntity.status(e.getStatusCode()).body(e.getReason());
-        } catch (Exception e) {
-            // Handle other exceptions
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred.");
-        }
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/info")
@@ -89,6 +83,7 @@ public class CharityController {
     ResponseEntity<Object> getMyInfo(
             @AuthenticationPrincipal CustomUserDetails userDetails
             ) {
+        System.out.println(userDetails.getUserId());
         var info = charityInternalAPI.getInfo(userDetails.getUserId());
 
         return ResponseEntity.ok(info);

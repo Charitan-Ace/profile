@@ -66,8 +66,7 @@ public class KafkaConsumer extends AbstractConsumerSeekAware {
                         profile.get("companyName"),
                         profile.get("address"),
                         profile.get("taxCode"),
-                        profile.get("organizationType"),
-                        profile.get("assetsKey")
+                        profile.get("organizationType")
                 );
 
                 charityExternalAPI.createCharity(request);

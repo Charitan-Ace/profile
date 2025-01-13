@@ -27,6 +27,4 @@ public class CharityCreationRequest {
 
     @NotNull(message = "Organization type is required")
     private String organizationType;
-
-    private String assetsKey;
 }
