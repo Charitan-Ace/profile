@@ -28,6 +28,7 @@ import org.springframework.stereotype.Component;
 
 import java.security.Key;
 import java.security.PublicKey;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Map;
 import java.util.UUID;
@@ -100,7 +101,7 @@ public class KafkaConsumer extends AbstractConsumerSeekAware {
     @KafkaListener(topics = ProfileConsumerTopic.GET_CHARITIES_PROFILE, groupId = "profile")
     @SendTo
     public GetCharityProfileByIdsResponseDto getCharityProfileByIds(GetCharityProfileByIdsRequestDto request) {
-        CharitiesDto resultList = new CharitiesDto(Collections.emptyList());
+        CharitiesDto resultList = new CharitiesDto(new ArrayList<>());
         for (UUID charityId : request.charityIdList()) {
             ExternalCharityDTO externalCharityDTO = charityExternalAPI.getCharity(charityId);
             if (externalCharityDTO != null) {
@@ -126,7 +127,7 @@ public class KafkaConsumer extends AbstractConsumerSeekAware {
     @KafkaListener(topics = ProfileConsumerTopic.GET_DONORS_PROFILE, groupId = "profile")
     @SendTo
     public GetDonorProfileByIdsResponseDto getDonorProfileByIds(GetDonorProfileByIdsRequestDto request) {
-        DonorsDto resultList = new DonorsDto(Collections.emptyList());
+        DonorsDto resultList = new DonorsDto(new ArrayList<>());
         for (UUID donorId : request.donorIdList()) {
             ExternalDonorDTO externalDonorDTO = donorExternalAPI.getDonor(donorId);
             if (externalDonorDTO != null) {
