@@ -21,26 +21,24 @@ import lombok.RequiredArgsConstructor;
 import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpStatus;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.listener.AbstractConsumerSeekAware;
 import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.stereotype.Component;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.security.Key;
 import java.security.PublicKey;
-import java.util.*;
+import java.util.Collections;
+import java.util.Map;
+import java.util.UUID;
 
 @RequiredArgsConstructor
 @Component
 public class KafkaConsumer extends AbstractConsumerSeekAware {
-
+    private static final Logger logger = LoggerFactory.getLogger(KafkaConsumer.class);
     private final DonorExternalAPI donorExternalAPI;
     private final CharityExternalAPI charityExternalAPI;
     private final JwtExternalAPI jwtExternalAPI;
-
-    private static final Logger logger = LoggerFactory.getLogger(KafkaConsumer.class);
 
     @KafkaListener(topics = AuthConsumerTopic.AUTH_CREATION, groupId = "profile")
     public void handleDonorCreatedEvent(AuthCreationDto authCreationDto) {
@@ -48,7 +46,7 @@ public class KafkaConsumer extends AbstractConsumerSeekAware {
             UUID id = authCreationDto.id(); // Convert String to UUID
             String email = authCreationDto.email();
             String roleId = authCreationDto.roleId();
-            Map<String, String> profile = (Map<String, String>) authCreationDto.profile();
+            Map<String, String> profile = authCreationDto.profile();
 
             if (roleId.equals("DONOR")) {
                 DonorCreationRequest request = new DonorCreationRequest(
@@ -74,14 +72,13 @@ public class KafkaConsumer extends AbstractConsumerSeekAware {
                 charityExternalAPI.createCharity(request);
             }
         } catch (Exception e) {
-            System.err.println("Failed to process donor created event: " + e.getMessage());
-            e.printStackTrace();
+            logger.error("Failed to process donor created event: {}", e.getMessage());
         }
     }
 
     @KafkaListener(
-        topics = KeyConsumerTopic.PUBLIC_KEY_CHANGE,
-        groupId = "profile-" + "#{T(java.util.UUID).randomUUID()}"
+            topics = KeyConsumerTopic.PUBLIC_KEY_CHANGE,
+            groupId = "profile-" + "#{T(java.util.UUID).randomUUID()}"
     )
     public void handlePublicKeyChange(String message) {
         try {
@@ -91,7 +88,7 @@ public class KafkaConsumer extends AbstractConsumerSeekAware {
                     .toKey();
             if (jwk instanceof PublicKey) {
                 jwtExternalAPI.setSigPublicKey((PublicKey) jwk);
-                logger.info("Signature {} public key updated", ((PublicKey) jwk).getFormat());
+                logger.info("Signature {} public key updated", (jwk).getFormat());
             }
 
         } catch (Exception e) {
@@ -103,11 +100,11 @@ public class KafkaConsumer extends AbstractConsumerSeekAware {
     @KafkaListener(topics = ProfileConsumerTopic.GET_CHARITIES_PROFILE, groupId = "profile")
     @SendTo
     public GetCharityProfileByIdsResponseDto getCharityProfileByIds(GetCharityProfileByIdsRequestDto request) {
-        try {
-            CharitiesDto resultList = new CharitiesDto(Collections.emptyList());
-            for(UUID charityId : request.charityIdList()) {
-                ExternalCharityDTO externalCharityDTO = charityExternalAPI.getCharity(charityId);
-                if (externalCharityDTO != null) {
+        CharitiesDto resultList = new CharitiesDto(Collections.emptyList());
+        for (UUID charityId : request.charityIdList()) {
+            ExternalCharityDTO externalCharityDTO = charityExternalAPI.getCharity(charityId);
+            if (externalCharityDTO != null) {
+                try {
                     UUID id = externalCharityDTO.getUserId();
                     String companyName = externalCharityDTO.getCompanyName();
                     String address = externalCharityDTO.getAddress();
@@ -117,23 +114,23 @@ public class KafkaConsumer extends AbstractConsumerSeekAware {
                     String assetKey = externalCharityDTO.getAssetsKey();
                     resultList.charityProfilesList().add(new CharityProfileDto(id, companyName, address, taxCode, organizationType,
                             stripeId, assetKey));
+                } catch (Exception e) {
+                    logger.error("Failed to get charity #{} profile, error: {}", externalCharityDTO.getUserId(), e.getMessage());
+                    logger.error("Stacktrace", e);
                 }
             }
-            return new GetCharityProfileByIdsResponseDto(resultList);
-        } catch (Exception e) {
-            logger.error("Failed to process get stripe id event", e);
-            throw new RuntimeException("Failed to process get stripe id event: " + e.getMessage());
         }
+        return new GetCharityProfileByIdsResponseDto(resultList);
     }
 
     @KafkaListener(topics = ProfileConsumerTopic.GET_DONORS_PROFILE, groupId = "profile")
     @SendTo
     public GetDonorProfileByIdsResponseDto getDonorProfileByIds(GetDonorProfileByIdsRequestDto request) {
-        try {
-            DonorsDto resultList = new DonorsDto(Collections.emptyList());
-            for(UUID donorId : request.donorIdList()) {
-                ExternalDonorDTO externalDonorDTO = donorExternalAPI.getDonor(donorId);
-                if (externalDonorDTO != null) {
+        DonorsDto resultList = new DonorsDto(Collections.emptyList());
+        for (UUID donorId : request.donorIdList()) {
+            ExternalDonorDTO externalDonorDTO = donorExternalAPI.getDonor(donorId);
+            if (externalDonorDTO != null) {
+                try {
                     UUID id = externalDonorDTO.getUserId();
                     String firstName = externalDonorDTO.getFirstName();
                     String lastName = externalDonorDTO.getLastName();
@@ -141,13 +138,14 @@ public class KafkaConsumer extends AbstractConsumerSeekAware {
                     String stripeId = externalDonorDTO.getStripeId();
                     String assetKey = externalDonorDTO.getAssetsKey();
                     resultList.donorProfilesList().add(new DonorProfileDto(id, firstName, lastName, address, stripeId, assetKey));
+                } catch (Exception e) {
+                    logger.error("Failed to get donor #{} profile, error: {}", externalDonorDTO.getUserId(), e.getMessage());
+                    logger.error("Stacktrace", e);
                 }
             }
-            return new GetDonorProfileByIdsResponseDto(resultList);
-        } catch (Exception e) {
-            logger.error("Failed to process get stripe id event", e);
-            throw new RuntimeException("Failed to process get stripe id event: " + e.getMessage());
         }
+        return new GetDonorProfileByIdsResponseDto(resultList);
+
     }
 
     @Override
