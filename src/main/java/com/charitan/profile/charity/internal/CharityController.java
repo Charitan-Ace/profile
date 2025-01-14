@@ -118,10 +118,10 @@ public class CharityController {
   }
 
   private CharityDTO signDtoAsset(CharityDTO dto) {
-    if (!dto.getVideo().isBlank()) {
+    if (dto.getVideo() != null && !dto.getVideo().isBlank()) {
       dto.setVideo(assetService.signedObjectUrl(dto.getUserId().toString() + "/" + dto.getVideo()));
     }
-    if (!dto.getAssetsKey().isBlank()) {
+    if (dto.getAssetsKey() != null && !dto.getAssetsKey().isBlank()) {
       dto.setAssetsKey(
           assetService.signedObjectUrl(dto.getUserId().toString() + "/" + dto.getAssetsKey()));
     }
