@@ -181,8 +181,13 @@ public class CharityService implements CharityExternalAPI, CharityInternalAPI {
 
       charity.setOrganizationType(organizationType);
     }
-    if (request.getAddress() != null) {
+    if (!Objects.equals(request.getAddress(), charity.getAddress())
+            && request.getAddress() != null) {
       charity.setAddress(request.getAddress());
+    }
+    if (!Objects.equals(request.getAssetKey(), charity.getAssetsKey())
+            && request.getAssetKey() != null) {
+      charity.setAssetsKey(request.getAssetKey());
     }
 
     charityRepository.save(charity);

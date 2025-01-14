@@ -152,6 +152,9 @@ public class DonorService implements DonorExternalAPI, DonorInternalAPI {
     if (!Objects.equals(request.getAddress(), donor.getAddress()) && request.getAddress() != null) {
       donor.setAddress(request.getAddress());
     }
+    if (!Objects.equals(request.getAssetKeys(), donor.getAssetsKey()) && request.getAssetKeys() != null) {
+      donor.setAssetsKey(request.getAssetKeys());
+    }
 
     donorRepository.save(donor);
 
