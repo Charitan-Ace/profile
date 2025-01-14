@@ -17,4 +17,6 @@ public class CharityUpdateRequest {
   private String taxCode;
 
   private String organizationType;
+
+  private String assetKey;
 }
