@@ -9,15 +9,26 @@ import java.util.concurrent.TimeUnit
 @Service
 class AssetService(
     private val minioClient: MinioClient,
-) {
-    fun signedUploadUrl(path: String): String =
+) : AssetExternalService {
+    override fun signedUploadUrl(path: String): String =
         minioClient.getPresignedObjectUrl(
             GetPresignedObjectUrlArgs
                 .builder()
                 .method(Method.PUT)
                 .bucket("charitan-bucket")
                 .`object`(path)
-                .expiry(2, TimeUnit.HOURS)
+                .expiry(30, TimeUnit.MINUTES)
+                .build(),
+        )
+
+    override fun signedObjectUrl(path: String): String =
+        minioClient.getPresignedObjectUrl(
+            GetPresignedObjectUrlArgs
+                .builder()
+                .method(Method.GET)
+                .bucket("charitan-bucket")
+                .`object`(path)
+                .expiry(1, TimeUnit.DAYS)
                 .build(),
         )
 }

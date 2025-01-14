@@ -1,5 +1,6 @@
 package com.charitan.profile.donor.internal;
 
+import com.charitan.profile.asset.AssetExternalService;
 import com.charitan.profile.donor.external.DonorExternalAPI;
 import com.charitan.profile.donor.external.dtos.DonorCreationRequest;
 import com.charitan.profile.donor.external.dtos.DonorTransactionDTO;
@@ -33,14 +34,10 @@ import java.util.stream.Collectors;
 @Service
 @Transactional
 public class DonorService implements DonorExternalAPI, DonorInternalAPI {
-    @Autowired
-    private DonorRepository donorRepository;
-    @Autowired
-    private StripeExternalAPI stripeExternalAPI;
+    private final DonorRepository donorRepository;
+    private final StripeExternalAPI stripeExternalAPI;
     private final RedisTemplate<String, DonorDTO> redisTemplate;
     private final RedisTemplate<String, String> redisZSetTemplate;
-
-    private final ObjectMapper objectMapper = new ObjectMapper();
 
     private static final String DONOR_CACHE_PREFIX = "donor:";
     private static final String DONOR_LIST_CACHE_KEY = "donors:all";
@@ -49,16 +46,19 @@ public class DonorService implements DonorExternalAPI, DonorInternalAPI {
     private static final String DONOR_LIST_CACHE_KEY_FIRST_NAME = DONOR_LIST_CACHE_KEY + ":firstname";
 
     // Constructor explicitly marked with @Qualifier for RedisTemplate
-    public DonorService(@Qualifier("REDIS_DONORS") RedisTemplate<String, DonorDTO> redisTemplate,
-                        @Qualifier("REDIS_DONORS_ZSET") RedisTemplate<String, String> redisZSetTemplate) {
+    public DonorService(
+            DonorRepository donorRepository,
+            StripeExternalAPI stripeExternalAPI,
+            @Qualifier("REDIS_DONORS") RedisTemplate<String, DonorDTO> redisTemplate,
+            @Qualifier("REDIS_DONORS_ZSET") RedisTemplate<String, String> redisZSetTemplate) {
+        this.donorRepository = donorRepository;
+        this.stripeExternalAPI = stripeExternalAPI;
         this.redisTemplate = redisTemplate;
         this.redisZSetTemplate = redisZSetTemplate;
     }
 
-    //TODO: send email on successful creation
     @Override
     public void createDonor(DonorCreationRequest request) {
-
         if (donorRepository.existsById(request.getUserId())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Donor is already created.");
         }
@@ -191,7 +191,6 @@ public class DonorService implements DonorExternalAPI, DonorInternalAPI {
 
     @Override
     public DonorDTO getInfo(UUID userId) {
-
         // Check if data is in cache
         String cacheKey = DONOR_CACHE_PREFIX + userId;
         DonorDTO cachedDonor = (DonorDTO) redisTemplate.opsForValue().get(cacheKey);
@@ -208,7 +207,7 @@ public class DonorService implements DonorExternalAPI, DonorInternalAPI {
         redisTemplate.opsForValue().set(cacheKey, new DonorDTO(donor));
 
         addToRedisZSet(donor);
-        
+
         return new DonorDTO(donor);
     }
 

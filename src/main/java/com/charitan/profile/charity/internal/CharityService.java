@@ -1,5 +1,6 @@
 package com.charitan.profile.charity.internal;
 
+import com.charitan.profile.asset.AssetExternalService;
 import com.charitan.profile.charity.external.CharityExternalAPI;
 import com.charitan.profile.charity.external.dtos.CharityCreationRequest;
 import com.charitan.profile.charity.external.dtos.ExternalCharityDTO;
@@ -32,10 +33,8 @@ import java.util.stream.Collectors;
 @Service
 @Transactional
 public class CharityService implements CharityExternalAPI, CharityInternalAPI {
-    @Autowired
-    private CharityRepository charityRepository;
-    @Autowired
-    private StripeExternalAPI stripeExternalAPI;
+    private final CharityRepository charityRepository;
+    private final StripeExternalAPI stripeExternalAPI;
     private final RedisTemplate<String, CharityDTO> redisTemplate;
     private final RedisTemplate<String, String> redisZSetTemplate;
 
@@ -46,8 +45,13 @@ public class CharityService implements CharityExternalAPI, CharityInternalAPI {
     private static final String CHARITY_LIST_CACHE_KEY_TAX_CODE = CHARITY_LIST_CACHE_KEY + ":taxcode";
     private static final String CHARITY_LIST_CACHE_KEY_ORGANIZATION_TYPE = CHARITY_LIST_CACHE_KEY + ":organizationtype";
 
-    public CharityService(@Qualifier("REDIS_CHARITIES") RedisTemplate<String, CharityDTO> redisTemplate,
-                            @Qualifier("REDIS_CHARITIES_ZSET") RedisTemplate<String, String> redisZSetTemplate) {
+    public CharityService(
+            CharityRepository charityRepository,
+            StripeExternalAPI stripeExternalAPI,
+            @Qualifier("REDIS_CHARITIES") RedisTemplate<String, CharityDTO> redisTemplate,
+            @Qualifier("REDIS_CHARITIES_ZSET") RedisTemplate<String, String> redisZSetTemplate) {
+        this.charityRepository = charityRepository;
+        this.stripeExternalAPI = stripeExternalAPI;
         this.redisTemplate = redisTemplate;
         this.redisZSetTemplate = redisZSetTemplate;
     }
@@ -260,6 +264,7 @@ public class CharityService implements CharityExternalAPI, CharityInternalAPI {
         redisTemplate.opsForValue().set(cacheKey, new CharityDTO(charity));
 
         addToRedisZSet(charity);
+
         return new CharityDTO(charity);
     }
 

@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RequestMapping
 @RequestMapping("/api/profile/asset")
 @Controller
 class AssetController(
-    private val assetService: AssetService,
+    private val assetService: AssetExternalService,
 ) {
     @RolesAllowed("DONOR", "CHARITY")
     @PostMapping("/upload")
@@ -23,7 +23,7 @@ class AssetController(
         ResponseEntity.ok(
             // add random number to invalidates cache (if exists)
             assetService.signedUploadUrl(
-                "${(userDetails.userId)}/${(100000000..999999999).random()}-$fileName",
+                "${userDetails.userId}/$fileName",
             ),
         )
 }

@@ -1,10 +1,16 @@
 package com.charitan.profile.donor.internal;
 
+import com.charitan.profile.asset.AssetService;
+import com.charitan.profile.charity.internal.dtos.CharityDTO;
+import com.charitan.profile.donor.internal.dtos.DonorDTO;
 import com.charitan.profile.donor.internal.dtos.DonorSelfUpdateRequest;
 import com.charitan.profile.donor.internal.dtos.DonorUpdateRequest;
 import com.charitan.profile.jwt.internal.CustomUserDetails;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -18,72 +24,100 @@ import java.util.UUID;
 @RequestMapping("api/profile/donor")
 public class DonorController {
     final private DonorInternalAPI donorInternalAPI;
+    private final AssetService assetService;
+    final private Logger logger = LoggerFactory.getLogger(this.getClass());
 
-    DonorController(DonorInternalAPI donorInternalAPI) {
+    DonorController(DonorInternalAPI donorInternalAPI, AssetService assetService) {
         this.donorInternalAPI = donorInternalAPI;
+        this.assetService = assetService;
     }
 
     @PatchMapping("/update")
-    public ResponseEntity<Object> updateDonor(@RequestBody @Valid DonorUpdateRequest request) {
-
+    public ResponseEntity<DonorDTO> updateDonor(@RequestBody @Valid DonorUpdateRequest request) {
         try {
-            return ResponseEntity.status(HttpStatus.OK).body(donorInternalAPI.updateDonor(request));
+            var response = donorInternalAPI.updateDonor(request);
+            return ResponseEntity.status(HttpStatus.OK).body(signAvatarUrl(response));
         } catch (ResponseStatusException e) {
             // If the exception is a ResponseStatusException, return the status and message
-            return ResponseEntity.status(e.getStatusCode()).body(e.getReason());
+            logger.info("Error in updating donor #{}", request.getUserId(), e);
+            return ResponseEntity.status(e.getStatusCode()).body(null);
         } catch (Exception e) {
             // Handle other exceptions
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred.");
+            logger.info("Error in updating donor #{}", request.getUserId(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
 
     @RolesAllowed({"DONOR"})
     @PatchMapping("/update/me")
-    public ResponseEntity<Object> updateMyInfo(@RequestBody @Valid DonorSelfUpdateRequest request, @AuthenticationPrincipal CustomUserDetails userDetails) {
-        var response = donorInternalAPI.updateMyInfo(request, userDetails.getUserId());
-
-        return ResponseEntity.ok(response);
+    public ResponseEntity<DonorDTO> updateMyInfo(@RequestBody @Valid DonorSelfUpdateRequest request, @AuthenticationPrincipal CustomUserDetails userDetails) {
+        logger.info("Updating donor #{}", userDetails.getUserId());
+        try {
+            var response = donorInternalAPI.updateMyInfo(request, userDetails.getUserId());
+            logger.info("Update donor #{} success!", userDetails.getUserId());
+            return ResponseEntity.ok(signAvatarUrl(response));
+        } catch (Exception e) {
+            logger.info("Error in updating donor #{}", userDetails.getUserId(), e);
+            return ResponseEntity.badRequest().body(null);
+        }
     }
 
     @GetMapping("/info")
-    public ResponseEntity<Object> getInfo(@RequestParam("id") UUID userId) {
-
+    public ResponseEntity<DonorDTO> getInfo(@RequestParam("id") UUID userId) {
         try {
-            return ResponseEntity.status(HttpStatus.OK).body(donorInternalAPI.getInfo(userId));
+            var info = donorInternalAPI.getInfo(userId);
+            return ResponseEntity.status(HttpStatus.OK).body(signAvatarUrl(info));
         } catch (ResponseStatusException e) {
             // If the exception is a ResponseStatusException, return the status and message
-            return ResponseEntity.status(e.getStatusCode()).body(e.getReason());
+            logger.error("Error while getting donor #{} info", userId, e);
+            return ResponseEntity.status(e.getStatusCode()).body(null);
         } catch (Exception e) {
             // Handle other exceptions
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred.");
+            logger.error("Error while getting donor #{} info", userId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
 
     @GetMapping("/all")
-    ResponseEntity<Object> getAll(
+    ResponseEntity<Page<DonorDTO>> getAll(
             @RequestParam(value = "pageNo", defaultValue = "0", required = false) int pageNo,
             @RequestParam(value = "pageSize", defaultValue = "10", required = false) int pageSize,
             @RequestParam(value = "order", defaultValue = "ascending", required = false) String order,
             @RequestParam(value = "filter", defaultValue = "lastName", required = false) String filter,
             @RequestParam(value = "keyword", defaultValue = "", required = false) String keyword) {
         try {
-            return ResponseEntity.status(HttpStatus.OK).body(donorInternalAPI.getAll(pageNo, pageSize, order, filter, keyword));
+            var info = donorInternalAPI.getAll(pageNo, pageSize, order, filter, keyword);
+            return ResponseEntity.status(HttpStatus.OK).body(info.map(this::signAvatarUrl));
         } catch (ResponseStatusException e) {
             // If the exception is a ResponseStatusException, return the status and message
-            return ResponseEntity.status(e.getStatusCode()).body(e.getReason());
+            logger.error("Error while getting donors info", e);
+            return ResponseEntity.status(e.getStatusCode()).body(null);
         } catch (Exception e) {
             // Handle other exceptions
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred.");
+            logger.error("Error while getting donors info", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
 
     @RolesAllowed({"DONOR"})
     @GetMapping("/me")
-    ResponseEntity<Object> getMyInfo(
+    ResponseEntity<DonorDTO> getMyInfo(
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
-        var info = donorInternalAPI.getInfo(userDetails.getUserId());
-        System.out.println(userDetails.getUserId());
-        return ResponseEntity.ok(info);
+        logger.info("Querying donor #{} info...", userDetails.getUserId());
+        try {
+            var info = donorInternalAPI.getInfo(userDetails.getUserId());
+            return ResponseEntity.ok(signAvatarUrl(info));
+        } catch (Exception e) {
+            logger.error("Error while getting donor #{} info", userDetails.getUserId(), e);
+            return ResponseEntity.internalServerError().body(null);
+        }
+    }
+
+    private DonorDTO signAvatarUrl(DonorDTO dto) {
+        if (!dto.getAssetsKey().isBlank()) {
+            dto.setAssetsKey(assetService.signedObjectUrl(dto.getUserId().toString() + "/" + dto.getAssetsKey()));
+        }
+        return dto;
     }
 }
