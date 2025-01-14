@@ -4,15 +4,15 @@ import lombok.Getter;
 
 @Getter
 public class CharitySelfUpdateRequest {
-    private String companyName;
+  private String companyName;
 
-    private String address;
+  private String address;
 
-    private String taxCode;
+  private String taxCode;
 
-    private String organizationType;
+  private String organizationType;
 
-    private String avatar;
+  private String avatar;
 
-    private String video;
+  private String video;
 }

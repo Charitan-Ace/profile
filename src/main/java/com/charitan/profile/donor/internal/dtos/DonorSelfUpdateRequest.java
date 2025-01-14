@@ -4,11 +4,11 @@ import lombok.Getter;
 
 @Getter
 public class DonorSelfUpdateRequest {
-    private String firstName;
+  private String firstName;
 
-    private String lastName;
+  private String lastName;
 
-    private String address;
+  private String address;
 
-    private String avatar;
+  private String avatar;
 }

@@ -1,18 +1,17 @@
 package com.charitan.profile.donor.internal.dtos;
 
 import jakarta.validation.constraints.NotNull;
-import lombok.Getter;
-
 import java.util.UUID;
+import lombok.Getter;
 
 @Getter
 public class DonorUpdateRequest {
-    @NotNull(message = "User ID is required")
-    private UUID userId;
+  @NotNull(message = "User ID is required")
+  private UUID userId;
 
-    private String firstName;
+  private String firstName;
 
-    private String lastName;
+  private String lastName;
 
-    private String address;
+  private String address;
 }
