@@ -11,6 +11,9 @@ import com.charitan.profile.stripe.StripeExternalAPI;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.domain.*;
 import org.springframework.data.redis.connection.RedisConnection;
@@ -32,6 +35,8 @@ public class CharityService implements CharityExternalAPI, CharityInternalAPI {
   private final StripeExternalAPI stripeExternalAPI;
   private final RedisTemplate<String, CharityDTO> redisTemplate;
   private final RedisTemplate<String, String> redisZSetTemplate;
+
+  private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
   private static final String CHARITY_CACHE_PREFIX = "charity:";
   private static final String CHARITY_LIST_CACHE_KEY = "charities:all";
@@ -69,7 +74,7 @@ public class CharityService implements CharityExternalAPI, CharityInternalAPI {
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid organization type.");
     }
 
-    String stripeId;
+    String stripeId = "";
     try {
       stripeId =
           stripeExternalAPI.createStripeCustomer(
@@ -78,8 +83,7 @@ public class CharityService implements CharityExternalAPI, CharityInternalAPI {
               "Charity ID: " + request.getUserId(),
               Map.of("charityId", String.valueOf(request.getUserId())));
     } catch (Exception e) {
-      throw new ResponseStatusException(
-          HttpStatus.INTERNAL_SERVER_ERROR, "Failed to create user in Stripe: " + e.getMessage());
+      logger.error("Failed to create user in Stripe", e);
     }
 
     Charity charity =

@@ -12,6 +12,9 @@ import com.charitan.profile.stripe.StripeExternalAPI;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.domain.*;
 import org.springframework.data.redis.connection.RedisConnection;
@@ -33,6 +36,8 @@ public class DonorService implements DonorExternalAPI, DonorInternalAPI {
   private final StripeExternalAPI stripeExternalAPI;
   private final RedisTemplate<String, DonorDTO> redisTemplate;
   private final RedisTemplate<String, String> redisZSetTemplate;
+
+  private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
   private static final String DONOR_CACHE_PREFIX = "donor:";
   private static final String DONOR_LIST_CACHE_KEY = "donors:all";
@@ -58,7 +63,7 @@ public class DonorService implements DonorExternalAPI, DonorInternalAPI {
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Donor is already created.");
     }
 
-    String stripeId;
+    String stripeId = "";
     try {
       stripeId =
           stripeExternalAPI.createStripeCustomer(
@@ -67,8 +72,7 @@ public class DonorService implements DonorExternalAPI, DonorInternalAPI {
               "Donor ID: " + request.getUserId(),
               Map.of("donorId", String.valueOf(request.getUserId())));
     } catch (Exception e) {
-      throw new ResponseStatusException(
-          HttpStatus.INTERNAL_SERVER_ERROR, "Failed to create user in Stripe: " + e.getMessage());
+      logger.error("Failed to create user in Stripe", e);
     }
 
     Donor donor =
